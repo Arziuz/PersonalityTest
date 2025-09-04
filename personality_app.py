@@ -24,11 +24,22 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# CLEAN ORIGINAL DESIGN WITH MINIMAL VISIBILITY FIXES
+# BLACK BACKGROUND THEME WITH HIGH CONTRAST
 st.markdown("""
 <style>
+    /* BLACK BACKGROUND FOR ENTIRE APP */
     .main {
+        background-color: #000000 !important;
+        color: #ffffff !important;
         padding-top: 2rem;
+    }
+    
+    .stApp {
+        background-color: #000000 !important;
+    }
+    
+    .block-container {
+        background-color: #000000 !important;
     }
     
     .stButton > button {
@@ -45,38 +56,39 @@ st.markdown("""
     
     .stButton > button:hover {
         transform: translateY(-2px);
-        box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        box-shadow: 0 5px 15px rgba(31, 119, 180, 0.4);
     }
     
     .scenario-box {
         background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        padding: 2rem;
+        padding: 2.5rem;
         border-radius: 15px;
         color: white;
         margin: 1rem 0;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     }
     
     .scenario-box h2 {
         color: white !important;
         font-weight: 800 !important;
         font-size: 2em !important;
-        margin-bottom: 1rem !important;
+        margin-bottom: 1.5rem !important;
     }
     
     .scenario-box p {
         color: white !important;
         font-weight: 600 !important;
-        font-size: 1.3em !important;
-        line-height: 1.6 !important;
+        font-size: 1.2em !important;
+        line-height: 1.7 !important;
+        margin-bottom: 1.2rem !important;
     }
     
     .question-box {
-        background: white;
+        background: #1a1a1a !important;
         padding: 2rem;
         border-radius: 15px;
         border-left: 5px solid #1f77b4;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        box-shadow: 0 4px 12px rgba(31, 119, 180, 0.2);
         margin: 1rem 0;
     }
     
@@ -88,7 +100,7 @@ st.markdown("""
     }
     
     .question-box p {
-        color: #1a1a1a !important;
+        color: #ffffff !important;
         font-size: 1.4em !important;
         font-weight: 800 !important;
         line-height: 1.7 !important;
@@ -101,6 +113,7 @@ st.markdown("""
         color: white;
         text-align: center;
         margin: 1rem 0;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
     }
     
     .results-header h1 {
@@ -117,62 +130,62 @@ st.markdown("""
     }
     
     .metric-card {
-        background: white;
+        background: #1a1a1a !important;
         padding: 1.5rem;
         border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(31, 119, 180, 0.2);
         text-align: center;
         border-top: 3px solid #1f77b4;
     }
     
-    /* FIXED: Make metric card text dark and visible */
     .metric-card h3 {
-        color: #1a1a1a !important;
+        color: #ffffff !important;
         font-size: 1.2em !important;
         font-weight: 800 !important;
         margin-bottom: 1rem !important;
     }
     
     .metric-card h2 {
-        color: #1a1a1a !important;
+        color: #ffffff !important;
         font-size: 2.5em !important;
         font-weight: 900 !important;
         margin: 0.5rem 0 !important;
     }
     
     .interpretation-box {
-        background: #f8f9fa;
+        background: #1a1a1a !important;
         padding: 1.5rem;
         border-radius: 10px;
         border-left: 4px solid #28a745;
         margin: 1rem 0;
+        box-shadow: 0 2px 8px rgba(40, 167, 69, 0.2);
     }
     
     .interpretation-box h3 {
-        color: #1a1a1a !important;
+        color: #28a745 !important;
         font-size: 1.5em !important;
         font-weight: 900 !important;
         margin-bottom: 1rem !important;
     }
     
     .interpretation-box p {
-        color: #1a1a1a !important;
+        color: #ffffff !important;
         font-size: 1.2em !important;
         line-height: 1.7 !important;
         font-weight: 700 !important;
     }
     
     .selection-info {
-        background: #e7f3ff;
+        background: #1a1a1a !important;
         padding: 1.2rem;
         border-radius: 10px;
         border-left: 4px solid #1f77b4;
         margin: 1rem 0;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(31, 119, 180, 0.2);
     }
     
     .selection-info p {
-        color: #1a1a1a !important;
+        color: #ffffff !important;
         font-weight: 900 !important;
         margin: 0 !important;
         font-size: 1.2em !important;
@@ -184,15 +197,19 @@ st.markdown("""
         color: #1f77b4 !important;
         text-align: center;
         margin: 1rem 0;
+        background: #1a1a1a !important;
+        padding: 1rem;
+        border-radius: 10px;
     }
     
     .feature-box {
         text-align: center;
         padding: 1rem;
-        background: white;
+        background: #1a1a1a !important;
         border-radius: 10px;
-        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        box-shadow: 0 2px 8px rgba(31, 119, 180, 0.2);
         margin: 0.5rem;
+        border: 2px solid #333333;
     }
     
     .feature-box h4 {
@@ -202,7 +219,7 @@ st.markdown("""
     }
     
     .feature-box p {
-        color: #1a1a1a !important;
+        color: #ffffff !important;
         font-weight: 800 !important;
         font-size: 1.1em !important;
     }
@@ -213,6 +230,7 @@ st.markdown("""
         margin-bottom: 0.5rem !important;
         font-weight: 900 !important;
         text-align: center;
+        text-shadow: 0 0 20px rgba(31, 119, 180, 0.5);
     }
     
     .main-subtitle {
@@ -222,21 +240,30 @@ st.markdown("""
         text-align: center;
     }
     
-    /* FIXED: Make dataframe text visible */
+    /* DATAFRAME STYLING FOR BLACK THEME */
+    .stDataFrame {
+        background-color: #1a1a1a !important;
+        border-radius: 10px;
+        border: 2px solid #333333;
+        padding: 1rem;
+    }
+    
     .stDataFrame table tbody tr td {
-        color: #1a1a1a !important;
+        color: #ffffff !important;
         font-weight: 800 !important;
         font-size: 18px !important;
+        background-color: #1a1a1a !important;
+        border: 1px solid #333333 !important;
     }
     
     .stDataFrame table thead tr th {
-        color: #1a1a1a !important;
+        color: #ffffff !important;
         font-weight: 900 !important;
         font-size: 20px !important;
-        background-color: #e6f3ff !important;
+        background-color: #2a2a2a !important;
+        border: 2px solid #1f77b4 !important;
     }
     
-    /* FIXED: Make only the "Detailed Breakdown" section header white */
     .results-section-header {
         color: white !important;
         font-size: 2em !important;
@@ -244,12 +271,46 @@ st.markdown("""
         font-weight: 900 !important;
     }
     
-    /* REMOVED: Don't target all h3 elements - keep them with default colors */
+    /* STREAMLIT SLIDER STYLING */
+    .stSlider > div > div > div > div {
+        background: #1f77b4 !important;
+    }
     
+    .stSlider > div > div > div {
+        background: #333333 !important;
+    }
+    
+    /* PROGRESS BAR STYLING */
+    .stProgress > div > div > div {
+        background: #1f77b4 !important;
+    }
+    
+    /* GENERAL TEXT ON BLACK BACKGROUND */
     div[data-testid="stMarkdownContainer"] p {
-        color: #1a1a1a !important;
+        color: #ffffff !important;
         font-weight: 600 !important;
         font-size: 1.1em !important;
+    }
+    
+    /* SPINNER STYLING */
+    .stSpinner > div {
+        color: #1f77b4 !important;
+        font-weight: 700 !important;
+        font-size: 18px !important;
+    }
+    
+    /* DOWNLOAD BUTTON STYLING */
+    .stDownloadButton > button {
+        background: linear-gradient(45deg, #28a745, #20c997) !important;
+        color: white !important;
+        border: none !important;
+        border-radius: 10px !important;
+        font-weight: 600 !important;
+    }
+    
+    .stDownloadButton > button:hover {
+        transform: translateY(-1px);
+        box-shadow: 0 3px 10px rgba(40, 167, 69, 0.4);
     }
 </style>
 """, unsafe_allow_html=True)
@@ -411,7 +472,7 @@ def create_results_visualization(probabilities: np.ndarray, labels: List[str], p
     </div>
     """, unsafe_allow_html=True)
     
-    # Create probability chart
+    # Create probability chart with dark theme
     fig = go.Figure(data=[
         go.Bar(
             x=labels,
@@ -424,11 +485,18 @@ def create_results_visualization(probabilities: np.ndarray, labels: List[str], p
     
     fig.update_layout(
         title="Personality Type Probability Distribution",
+        title_font_color="white",
         xaxis_title="Personality Types",
         yaxis_title="Confidence (%)",
+        xaxis_title_font_color="white",
+        yaxis_title_font_color="white",
+        xaxis_tickfont_color="white",
+        yaxis_tickfont_color="white",
         yaxis=dict(range=[0, 100]),
         height=500,
-        template="plotly_white"
+        template="plotly_dark",
+        plot_bgcolor='#1a1a1a',
+        paper_bgcolor='#1a1a1a'
     )
     
     st.plotly_chart(fig, width='stretch')
@@ -465,12 +533,11 @@ def get_interpretation(max_prob: float) -> str:
                 "This versatility allows you to relate to many kinds of people and situations. "
                 "Such balance can be a significant asset in dynamic environments requiring varied approaches.")
 
-
 def main():
     """Main application logic"""
     initialize_session_state()
     
-    # Header with original clean styling
+    # Header with black theme styling
     st.markdown("""
     <div style="text-align: center; margin-bottom: 2rem;">
         <h1 class="main-title">🎯 AI-Powered Personality Assessment</h1>
@@ -479,22 +546,19 @@ def main():
     """, unsafe_allow_html=True)
     
     if not st.session_state.assessment_started:
-        # Welcome screen with original styling
+        # EXPANDED SCENARIO with black theme
         st.markdown("""
         <div class="scenario-box">
-            <h2>📖 Assessment Scenario</h2>
-            <p🏔️ Mountain Retreat Adventure
+            <h2>🏔️ Mountain Retreat Adventure</h2>
+            <p>You've been invited to an exciting weekend team retreat at a mountain resort! You'll spend three days with 20 colleagues mixing outdoor adventures (hiking, rock climbing, team challenges), creative workshops, and social events around a campfire.</p>
             
-            You've been invited to an exciting weekend team retreat at a mountain resort! 
-            You'll spend three days with 20 colleagues mixing outdoor adventures (hiking, rock climbing, team challenges), creative workshops, and social events around a campfire.
-            You'll stay in shared cabins with a mix of familiar faces and new colleagues - from outgoing social butterflies to quieter team members. 
-            The weekend includes everything from adrenaline-pumping activities to collaborative problem-solving and relaxed social time.
+            <p>You'll stay in shared cabins with a mix of familiar faces and new colleagues - from outgoing social butterflies to quieter team members. The weekend includes everything from adrenaline-pumping activities to collaborative problem-solving and relaxed social time.</p>
             
-            Imagine yourself in this scenario and answer honestly based on how you'd naturally behave. There are no right or wrong answers - just be genuine about your preferences and reactions!</p>
+            <p><strong>Imagine yourself in this scenario and answer honestly based on how you'd naturally behave. There are no right or wrong answers - just be genuine about your preferences and reactions!</strong></p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Features with original styling
+        # Features with black theme
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown("""
@@ -525,7 +589,7 @@ def main():
             st.rerun()
     
     elif not st.session_state.results_ready:
-        # Questions with original styling
+        # Questions with black theme
         create_progress_bar(st.session_state.current_question, len(SCENARIO_QUESTIONS))
         
         current_q = SCENARIO_QUESTIONS[st.session_state.current_question]
@@ -638,7 +702,7 @@ def display_final_results():
     </div>
     """, unsafe_allow_html=True)
     
-    # Detailed breakdown with clean original styling but visible text
+    # Detailed breakdown with black theme
     st.markdown("""
     <h3 class="results-section-header">📊 Detailed Breakdown</h3>
     """, unsafe_allow_html=True)
@@ -677,6 +741,4 @@ Interpretation: {interpretation}
         )
 
 if __name__ == "__main__":
-
     main()
-
