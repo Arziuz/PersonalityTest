@@ -453,11 +453,18 @@ def create_results_visualization(probabilities: np.ndarray, labels: List[str], p
 def get_interpretation(max_prob: float) -> str:
     """Generate interpretation based on confidence level"""
     if max_prob > 0.7:
-        return "🎯 **Strong Profile Match**: You show a clear preference for one personality type with high confidence. Your responses indicate consistent behavioral patterns and well-defined preferences."
+        return ("🎯 **Strong Profile Match**: Your personality type is very clear and well-defined. "
+                "Your responses reveal consistent behaviors and preferences, indicating a strong alignment "
+                "with this trait. Embrace these strengths as they shape your natural way of engaging with the world.")
     elif max_prob > 0.5:
-        return "⚖️ **Moderate Profile**: You show a moderate preference for one personality type with some mixed traits. This suggests adaptability and situational flexibility in your behavior."
+        return ("⚖️ **Moderate Profile**: You exhibit a balance between different personality traits. "
+                "This suggests flexibility and adaptability, enabling you to navigate a variety of situations "
+                "effectively. Your personality may shift subtly depending on context, showing both strengths and areas of growth.")
     else:
-        return "🌈 **Balanced Profile**: You display a well-balanced mix of personality traits across different types. This versatility can be a significant strength in diverse team environments."
+        return ("🌈 **Balanced Profile**: Your personality displays a rich blend of diverse traits. "
+                "This versatility allows you to relate to many kinds of people and situations. "
+                "Such balance can be a significant asset in dynamic environments requiring varied approaches.")
+
 
 def main():
     """Main application logic"""
@@ -672,3 +679,4 @@ Interpretation: {interpretation}
 if __name__ == "__main__":
 
     main()
+
