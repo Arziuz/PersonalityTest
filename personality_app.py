@@ -521,15 +521,15 @@ def create_results_visualization(probabilities: np.ndarray, labels: List[str], p
 def get_interpretation(max_prob: float) -> str:
     """Generate interpretation based on confidence level"""
     if max_prob > 0.7:
-        return ("🎯 **Strong Profile Match**: Your personality type is very clear and well-defined. "
+        return ("🎯 Strong Profile Match: Your personality type is very clear and well-defined. "
                 "Your responses reveal consistent behaviors and preferences, indicating a strong alignment "
                 "with this trait. Embrace these strengths as they shape your natural way of engaging with the world.")
     elif max_prob > 0.5:
-        return ("⚖️ **Moderate Profile**: You exhibit a balance between different personality traits. "
+        return ("⚖️ Moderate Profile: You exhibit a balance between different personality traits. "
                 "This suggests flexibility and adaptability, enabling you to navigate a variety of situations "
                 "effectively. Your personality may shift subtly depending on context, showing both strengths and areas of growth.")
     else:
-        return ("🌈 **Balanced Profile**: Your personality displays a rich blend of diverse traits. "
+        return ("🌈 Balanced Profile: Your personality displays a rich blend of diverse traits. "
                 "This versatility allows you to relate to many kinds of people and situations. "
                 "Such balance can be a significant asset in dynamic environments requiring varied approaches.")
 
@@ -550,11 +550,11 @@ def main():
         st.markdown("""
         <div class="scenario-box">
             <h2>🏔️ Mountain Retreat Adventure</h2>
-            <p>You've been invited to an exciting weekend team retreat at a mountain resort! You'll spend three days with 20 colleagues mixing outdoor adventures (hiking, rock climbing, team challenges), creative workshops, and social events around a campfire.</p>
-            
-            <p>You'll stay in shared cabins with a mix of familiar faces and new colleagues - from outgoing social butterflies to quieter team members. The weekend includes everything from adrenaline-pumping activities to collaborative problem-solving and relaxed social time.</p>
-            
-            <p><strong>Imagine yourself in this scenario and answer honestly based on how you'd naturally behave. There are no right or wrong answers - just be genuine about your preferences and reactions!</strong></p>
+            <p>You've been invited to an exciting weekend team retreat at a mountain resort! 
+            You'll spend three days with 20 colleagues mixing outdoor adventures (hiking, rock climbing, team challenges), creative workshops, and social events around a campfire.
+            You'll stay in shared cabins with a mix of familiar faces and new colleagues - from outgoing social butterflies to quieter team members. 
+            The weekend includes everything from adrenaline-pumping activities to collaborative problem-solving and relaxed social time.
+            Imagine yourself in this scenario and answer honestly based on how you'd naturally behave. There are no right or wrong answers - just be genuine about your preferences and reactions!</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -742,3 +742,4 @@ Interpretation: {interpretation}
 
 if __name__ == "__main__":
     main()
+
