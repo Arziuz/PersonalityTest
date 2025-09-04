@@ -476,9 +476,14 @@ def main():
         st.markdown("""
         <div class="scenario-box">
             <h2>📖 Assessment Scenario</h2>
-            <p>You've just been invited to a weekend team-building retreat! 
-            Imagine yourself in this situation and answer the following questions 
-            based on how you would naturally behave and feel.</p>
+            <p🏔️ Mountain Retreat Adventure
+            
+            You've been invited to an exciting weekend team retreat at a mountain resort! 
+            You'll spend three days with 20 colleagues mixing outdoor adventures (hiking, rock climbing, team challenges), creative workshops, and social events around a campfire.
+            You'll stay in shared cabins with a mix of familiar faces and new colleagues - from outgoing social butterflies to quieter team members. 
+            The weekend includes everything from adrenaline-pumping activities to collaborative problem-solving and relaxed social time.
+            
+            Imagine yourself in this scenario and answer honestly based on how you'd naturally behave. There are no right or wrong answers - just be genuine about your preferences and reactions!</p>
         </div>
         """, unsafe_allow_html=True)
         
@@ -665,4 +670,5 @@ Interpretation: {interpretation}
         )
 
 if __name__ == "__main__":
+
     main()
