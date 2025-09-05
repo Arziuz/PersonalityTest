@@ -15,6 +15,13 @@ import time
 import warnings
 from typing import Dict, List, Tuple, Any
 
+# Key
+try:
+    OPENROUTER_API_KEY = st.secrets["OPENROUTER_API_KEY"]
+except KeyError:
+    st.error("🔑 API key not found! Please add OPENROUTER_API_KEY to your Streamlit secrets.")
+    st.stop()
+
 # Suppress warnings and set proper config
 warnings.filterwarnings('ignore')
 torch.set_num_threads(1)
@@ -1071,3 +1078,4 @@ Interpretation: {interpretation}
 
 if __name__ == "__main__":
     main()
+
