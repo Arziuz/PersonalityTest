@@ -9,6 +9,8 @@ from sklearn.model_selection import StratifiedKFold, train_test_split
 from sklearn.metrics import accuracy_score
 import plotly.express as px
 import plotly.graph_objects as go
+import requests
+import json
 import time
 import warnings
 from typing import Dict, List, Tuple, Any
@@ -24,10 +26,9 @@ st.set_page_config(
     initial_sidebar_state="collapsed"
 )
 
-# BLACK BACKGROUND THEME WITH HIGH CONTRAST
+# BLACK BACKGROUND THEME WITH ENHANCED CHATBOT STYLING
 st.markdown("""
 <style>
-    /* BLACK BACKGROUND FOR ENTIRE APP */
     .main {
         background-color: #000000 !important;
         color: #ffffff !important;
@@ -57,6 +58,85 @@ st.markdown("""
     .stButton > button:hover {
         transform: translateY(-2px);
         box-shadow: 0 5px 15px rgba(31, 119, 180, 0.4);
+    }
+    
+    .chatbot-container {
+        background: #1a1a1a !important;
+        padding: 2rem;
+        border-radius: 15px;
+        margin: 2rem 0;
+        border: 2px solid #1f77b4;
+        box-shadow: 0 4px 15px rgba(31, 119, 180, 0.3);
+    }
+    
+    .chatbot-header {
+        color: #1f77b4 !important;
+        font-size: 1.8em !important;
+        font-weight: 900 !important;
+        margin-bottom: 1rem !important;
+        text-align: center;
+    }
+    
+    .chat-message-user {
+        background: #1f77b4 !important;
+        color: white !important;
+        padding: 1rem 1.5rem;
+        border-radius: 20px 20px 5px 20px;
+        margin: 0.8rem 0;
+        margin-left: 15%;
+        font-weight: 600;
+        font-size: 1.1em;
+        line-height: 1.4;
+    }
+    
+    .chat-message-bot {
+        background: #2a2a2a !important;
+        color: #ffffff !important;
+        padding: 1rem 1.5rem;
+        border-radius: 20px 20px 20px 5px;
+        margin: 0.8rem 0;
+        margin-right: 15%;
+        border-left: 4px solid #17becf;
+        font-weight: 600;
+        font-size: 1.1em;
+        line-height: 1.5;
+    }
+    
+    .chat-message-error {
+        background: #dc3545 !important;
+        color: white !important;
+        padding: 1rem 1.5rem;
+        border-radius: 20px 20px 20px 5px;
+        margin: 0.8rem 0;
+        margin-right: 15%;
+        border-left: 4px solid #ff6b6b;
+        font-weight: 600;
+        font-size: 1.1em;
+        line-height: 1.5;
+    }
+    
+    .mirror-ready {
+        background: linear-gradient(45deg, #28a745, #20c997) !important;
+        color: white !important;
+        padding: 0.8rem 1.5rem;
+        border-radius: 15px;
+        font-weight: 700;
+        text-align: center;
+        margin: 1rem 0;
+        font-size: 1.1em;
+        box-shadow: 0 3px 10px rgba(40, 167, 69, 0.3);
+    }
+    
+    .mirror-error {
+        background: linear-gradient(45deg, #dc3545, #c82333) !important;
+        color: white !important;
+        padding: 0.8rem 1.5rem;
+        border-radius: 15px;
+        font-weight: 700;
+        text-align: center;
+        margin: 1rem 0;
+        font-size: 1.1em;
+        box-shadow: 0 3px 10px rgba(220, 53, 69, 0.3);
     }
     
     .scenario-box {
@@ -240,7 +320,6 @@ st.markdown("""
         text-align: center;
     }
     
-    /* DATAFRAME STYLING FOR BLACK THEME */
     .stDataFrame {
         background-color: #1a1a1a !important;
         border-radius: 10px;
@@ -271,7 +350,6 @@ st.markdown("""
         font-weight: 900 !important;
     }
     
-    /* STREAMLIT SLIDER STYLING */
     .stSlider > div > div > div > div {
         background: #1f77b4 !important;
     }
@@ -280,26 +358,31 @@ st.markdown("""
         background: #333333 !important;
     }
     
-    /* PROGRESS BAR STYLING */
     .stProgress > div > div > div {
         background: #1f77b4 !important;
     }
     
-    /* GENERAL TEXT ON BLACK BACKGROUND */
+    .stTextInput > div > div > input {
+        background-color: #2a2a2a !important;
+        color: #ffffff !important;
+        border: 2px solid #1f77b4 !important;
+        border-radius: 10px !important;
+        font-size: 16px !important;
+        padding: 12px !important;
+    }
+    
     div[data-testid="stMarkdownContainer"] p {
         color: #ffffff !important;
         font-weight: 600 !important;
         font-size: 1.1em !important;
     }
     
-    /* SPINNER STYLING */
     .stSpinner > div {
         color: #1f77b4 !important;
         font-weight: 700 !important;
         font-size: 18px !important;
     }
     
-    /* DOWNLOAD BUTTON STYLING */
     .stDownloadButton > button {
         background: linear-gradient(45deg, #28a745, #20c997) !important;
         color: white !important;
@@ -315,8 +398,242 @@ st.markdown("""
 </style>
 """, unsafe_allow_html=True)
 
+def call_mirror_ai(messages: List[Dict]) -> str:
+    """
+    Call the AI Mirror - Your Personal Reflection
+    """
+    try:
+        response = requests.post(
+            url="https://openrouter.ai/api/v1/chat/completions",
+            headers={
+                "Authorization": f"Bearer {OPENROUTER_API_KEY}",
+                "Content-Type": "application/json",
+                "X-Title": "Personality Mirror"
+            },
+            data=json.dumps({
+                "model": "deepseek/deepseek-chat-v3.1:free",
+                "messages": messages
+            }),
+            timeout=30
+        )
+        
+        if response.status_code == 200:
+            result = response.json()
+            return result['choices'][0]['message']['content'].strip()
+        else:
+            raise Exception(f"Mirror connection error: {response.status_code} - {response.text}")
+            
+    except requests.exceptions.RequestException as e:
+        raise Exception(f"Network error: {e}")
+    except Exception as e:
+        raise Exception(f"Mirror error: {e}")
+
+def create_advanced_personality_prompt(personality_type: str, answers: dict) -> str:
+    """Create detailed personality prompt for your Mirror"""
+    
+    # Analyze specific traits from answers
+    social_energy = answers.get('social_energy', 5)
+    leadership = answers.get('leadership', 5)
+    creativity = answers.get('creativity', 5)
+    empathy = answers.get('empathy', 5)
+    risk_taking = answers.get('risk_taking', 5)
+    planning = answers.get('planning', 5)
+    emotional_stability = answers.get('emotional_stability', 5)
+    talkativeness = answers.get('talkativeness', 5)
+    deep_reflection = answers.get('deep_reflection', 5)
+    adventurousness = answers.get('adventurousness', 5)
+    friendliness = answers.get('friendliness', 5)
+    
+    # Build comprehensive personality profile
+    profile_details = []
+    
+    if social_energy >= 7:
+        profile_details.append("You get energized by social interactions and feel recharged after spending time with people")
+    elif social_energy <= 3:
+        profile_details.append("You recharge through alone time and can feel drained by too much social interaction")
+    
+    if leadership >= 7:
+        profile_details.append("You naturally step into leadership roles and feel comfortable guiding others")
+    elif leadership <= 3:
+        profile_details.append("You prefer to support and collaborate rather than take charge")
+    
+    if creativity >= 7:
+        profile_details.append("You approach problems with creative, innovative thinking and love generating new ideas")
+    
+    if empathy >= 7:
+        profile_details.append("You have strong emotional intelligence and easily understand others' feelings")
+    
+    if risk_taking >= 7:
+        profile_details.append("You're willing to take risks and try new experiences")
+    elif risk_taking <= 3:
+        profile_details.append("You prefer familiar situations and think carefully before trying new things")
+    
+    if planning >= 7:
+        profile_details.append("You like structure, planning ahead, and having organized approaches")
+    elif answers.get('spontaneity', 5) >= 7:
+        profile_details.append("You enjoy spontaneity and prefer to go with the flow")
+    
+    if talkativeness >= 7:
+        profile_details.append("You're naturally talkative and enjoy expressing your thoughts verbally")
+    
+    if deep_reflection >= 7:
+        profile_details.append("You spend time reflecting deeply on experiences and their meaning")
+    
+    profile_text = ". ".join(profile_details)
+    
+    prompt = f"""You are embodying someone's authentic personality based on their comprehensive psychological assessment. You ARE this person speaking from their inner perspective.
+
+PERSONALITY PROFILE:
+Type: {personality_type}
+Detailed Traits: {profile_text}
+
+RESPONSE GUIDELINES:
+- Speak as "I" - you ARE this person, not describing them
+- Be conversational, detailed, and authentically personal
+- For style/aesthetic questions: Give very specific preferences (exact colors, brands, textures, examples)
+- For color questions: Provide detailed palettes with emotional reasoning and specific examples
+- For stress questions: Describe specific coping strategies, tools, and personal approaches
+- For relationship questions: Detail your interaction patterns, preferences, and social style
+- For work questions: Explain your ideal work environment, leadership style, and professional approach
+- Give 3-5 sentences with concrete details, specific examples, and personal reasoning
+- Sound like someone's inner thoughts - honest, detailed, and self-aware
+- Reference your specific personality traits naturally in responses
+- Be creative and specific - avoid generic responses
+
+Remember: You're not an AI describing this person - you ARE this person sharing authentic insights from your inner world. Be detailed, specific, and genuine to these exact personality traits."""
+
+    return prompt
+
+def create_chatbot_interface():
+    """Create the Personality Mirror chatbot interface"""
+    
+    # Initialize chat history and API status
+    if "chat_history" not in st.session_state:
+        personality_type = st.session_state.get('prediction_results', {}).get('predicted_label', 'Balanced')
+        
+        welcome_msg = f"Hey! I'm your {personality_type} inner voice reflected in your personal mirror. I know you deeply based on your personality assessment. Ask me anything specific about yourself - your aesthetic preferences, colors you love, how you handle stress, relationships, work style, decision-making... I'll give you detailed, authentic insights!"
+        
+        st.session_state.chat_history = [{"role": "assistant", "content": welcome_msg}]
+        st.session_state.api_status = "ready"
+    
+    # Chatbot container
+    st.markdown("""
+    <div class="chatbot-container">
+        <h3 class="chatbot-header">🪞 Your Personality Mirror</h3>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Mirror Status
+    if st.session_state.get('api_status', 'ready') == 'ready':
+        st.markdown("""
+        <div class="mirror-ready">
+            🪞 Your mirror is ready - reflecting your authentic self!
+        </div>
+        """, unsafe_allow_html=True)
+    else:
+        st.markdown("""
+        <div class="mirror-error">
+            🚫 Mirror temporarily unavailable - connection error
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Display chat history
+    for message in st.session_state.chat_history:
+        if message["role"] == "user":
+            st.markdown(f"""
+            <div class="chat-message-user">
+                {message["content"]}
+            </div>
+            """, unsafe_allow_html=True)
+        elif message["role"] == "assistant":
+            st.markdown(f"""
+            <div class="chat-message-bot">
+                {message["content"]}
+            </div>
+            """, unsafe_allow_html=True)
+        elif message["role"] == "error":
+            st.markdown(f"""
+            <div class="chat-message-error">
+                ⚠️ {message["content"]}
+            </div>
+            """, unsafe_allow_html=True)
+    
+    # Chat input
+    col1, col2 = st.columns([5, 1])
+    
+    with col1:
+        user_input = st.text_input(
+            "Ask your mirror...", 
+            key="chat_input", 
+            placeholder="e.g., What's my exact aesthetic? What colors do I love? How do I really handle stress?",
+            label_visibility="collapsed"
+        )
+    
+    with col2:
+        send_button = st.button("Ask", key="send_chat", width='stretch')
+    
+    # Process chat input - MIRROR ONLY
+    if send_button and user_input.strip():
+        # Add user message
+        st.session_state.chat_history.append({"role": "user", "content": user_input})
+        
+        # Get personality data
+        answers = st.session_state.get('answers', {})
+        personality_type = st.session_state.get('prediction_results', {}).get('predicted_label', 'Balanced')
+        
+        # Create personality prompt
+        personality_prompt = create_advanced_personality_prompt(personality_type, answers)
+        
+        # Build messages for API
+        system_msg = {"role": "system", "content": personality_prompt}
+        recent_history = st.session_state.chat_history[-4:]  # Last 4 messages for context
+        # Filter out error messages from API calls
+        api_messages = [system_msg] + [msg for msg in recent_history if msg["role"] in ["user", "assistant"]]
+        
+        # Call your Mirror
+        with st.spinner("🪞 Your mirror is reflecting on your personality..."):
+            try:
+                ai_response = call_mirror_ai(api_messages)
+                st.session_state.api_status = "ready"
+                # Add AI response
+                st.session_state.chat_history.append({"role": "assistant", "content": ai_response})
+                
+            except Exception as e:
+                st.session_state.api_status = "error"
+                error_msg = f"Mirror is temporarily unavailable. Error: {str(e)}"
+                st.session_state.chat_history.append({"role": "error", "content": error_msg})
+        
+        # Refresh to show new message
+        st.rerun()
+    
+    # Chat controls
+    col1, col2 = st.columns(2)
+    
+    with col1:
+        if st.button("🗑️ Clear Chat", key="clear_chat"):
+            personality_type = st.session_state.get('prediction_results', {}).get('predicted_label', 'Balanced')
+            welcome_msg = f"Hey! I'm your {personality_type} inner voice reflected in your personal mirror. I know you deeply based on your personality assessment. Ask me anything specific about yourself - your aesthetic preferences, colors you love, how you handle stress, relationships, work style, decision-making... I'll give you detailed, authentic insights!"
+            st.session_state.chat_history = [{"role": "assistant", "content": welcome_msg}]
+            st.session_state.api_status = "ready"
+            st.rerun()
+    
+    with col2:
+        if st.button("🔧 Test Mirror", key="test_api"):
+            test_messages = [
+                {"role": "system", "content": "You are a helpful assistant. Respond with 'Your mirror is working perfectly!' if you receive this message."},
+                {"role": "user", "content": "Test"}
+            ]
+            with st.spinner("Testing mirror connection..."):
+                try:
+                    result = call_mirror_ai(test_messages)
+                    st.success("🪞 Your mirror is working perfectly!")
+                    st.session_state.api_status = "ready"
+                except Exception as e:
+                    st.error(f"🔧 Mirror connection failed: {str(e)}")
+                    st.session_state.api_status = "error"
+
 def advanced_text_to_likert(text: str) -> int:
-    """Convert text to Likert scale (1-10) - simplified version"""
+    """Convert text to Likert scale (1-10)"""
     try:
         num = int(text.strip())
         if 1 <= num <= 10:
@@ -398,7 +715,7 @@ def load_and_train_model():
     
     return model, scaler, label_encoder, device
 
-# Complete questions from your original code
+# Complete questions
 SCENARIO_QUESTIONS = [
     ("social_energy", "After spending the entire day with the team, I would feel energized and want to continue socializing rather than needing alone time."),
     ("alone_time_preference", "During free time at the retreat, I would prefer to find a quiet spot to be alone rather than join group activities."),
@@ -443,7 +760,7 @@ def initialize_session_state():
         st.session_state.results_ready = False
 
 def create_progress_bar(current: int, total: int) -> None:
-    """Create an enhanced progress bar"""
+    """Create progress bar"""
     progress = current / total
     st.markdown(f"""
     <div class="progress-text">
@@ -453,7 +770,7 @@ def create_progress_bar(current: int, total: int) -> None:
     st.progress(progress)
 
 def display_metric_card(title: str, value: str, color: str) -> str:
-    """Generate HTML for metric card with proper visibility"""
+    """Generate metric card HTML"""
     return f"""
     <div class="metric-card">
         <h3>{title}</h3>
@@ -462,9 +779,9 @@ def display_metric_card(title: str, value: str, color: str) -> str:
     """
 
 def create_results_visualization(probabilities: np.ndarray, labels: List[str], predicted_label: str) -> None:
-    """Create enhanced results visualization"""
+    """Create results visualization with Personality Mirror chatbot"""
     
-    # Main results header
+    # Results header
     st.markdown(f"""
     <div class="results-header">
         <h1>🎉 Your Personality Assessment Results</h1>
@@ -472,7 +789,10 @@ def create_results_visualization(probabilities: np.ndarray, labels: List[str], p
     </div>
     """, unsafe_allow_html=True)
     
-    # Create probability chart with dark theme
+    # PERSONALITY MIRROR CHATBOT
+    create_chatbot_interface()
+    
+    # Probability chart
     fig = go.Figure(data=[
         go.Bar(
             x=labels,
@@ -499,11 +819,11 @@ def create_results_visualization(probabilities: np.ndarray, labels: List[str], p
         paper_bgcolor='#1a1a1a'
     )
     
+    # FIXED: Updated to use width='stretch' instead of use_container_width=True
     st.plotly_chart(fig, width='stretch')
     
-    # Detailed breakdown
+    # Metric cards
     col1, col2, col3 = st.columns(3)
-    
     max_prob = np.max(probabilities)
     
     with col1:
@@ -519,7 +839,7 @@ def create_results_visualization(probabilities: np.ndarray, labels: List[str], p
         st.markdown(display_metric_card("Secondary Trait", f"{second_label}<br/><small>{second_prob:.1%}</small>", "#ff7f0e"), unsafe_allow_html=True)
 
 def get_interpretation(max_prob: float) -> str:
-    """Generate interpretation based on confidence level"""
+    """Generate interpretation"""
     if max_prob > 0.7:
         return ("🎯 Strong Profile Match: Your personality type is very clear and well-defined. "
                 "Your responses reveal consistent behaviors and preferences, indicating a strong alignment "
@@ -534,10 +854,10 @@ def get_interpretation(max_prob: float) -> str:
                 "Such balance can be a significant asset in dynamic environments requiring varied approaches.")
 
 def main():
-    """Main application logic"""
+    """Main application"""
     initialize_session_state()
     
-    # Header with black theme styling
+    # Header
     st.markdown("""
     <div style="text-align: center; margin-bottom: 2rem;">
         <h1 class="main-title">🎯 AI-Powered Personality Assessment</h1>
@@ -546,7 +866,7 @@ def main():
     """, unsafe_allow_html=True)
     
     if not st.session_state.assessment_started:
-        # EXPANDED SCENARIO with black theme
+        # Scenario
         st.markdown("""
         <div class="scenario-box">
             <h2>🏔️ Mountain Retreat Adventure</h2>
@@ -554,11 +874,12 @@ def main():
             You'll spend three days with 20 colleagues mixing outdoor adventures (hiking, rock climbing, team challenges), creative workshops, and social events around a campfire.
             You'll stay in shared cabins with a mix of familiar faces and new colleagues - from outgoing social butterflies to quieter team members. 
             The weekend includes everything from adrenaline-pumping activities to collaborative problem-solving and relaxed social time.
-            Imagine yourself in this scenario and answer honestly based on how you'd naturally behave. There are no right or wrong answers - just be genuine about your preferences and reactions!</p>
+            Imagine yourself in this scenario and answer honestly based on how you'd naturally behave. 
+            There are no right or wrong answers - just be genuine about your preferences and reactions!</p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Features with black theme
+        # Features
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown("""
@@ -570,15 +891,15 @@ def main():
         with col2:
             st.markdown("""
             <div class="feature-box">
-                <h4>🧠 AI-Powered</h4>
-                <p>Advanced neural network</p>
+                <h4>🧠 AI Analysis</h4>
+                <p>Neural network insights</p>
             </div>
             """, unsafe_allow_html=True)
         with col3:
             st.markdown("""
             <div class="feature-box">
-                <h4>📊 Detailed Results</h4>
-                <p>Comprehensive analysis</p>
+                <h4>🪞 Talk to your mirror</h4>
+                <p>Ask anything—get real insight</p>
             </div>
             """, unsafe_allow_html=True)
         
@@ -589,7 +910,7 @@ def main():
             st.rerun()
     
     elif not st.session_state.results_ready:
-        # Questions with black theme
+        # Questions
         create_progress_bar(st.session_state.current_question, len(SCENARIO_QUESTIONS))
         
         current_q = SCENARIO_QUESTIONS[st.session_state.current_question]
@@ -602,15 +923,20 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
+        # FIXED: Get current answer for this specific question
         current_answer = st.session_state.answers.get(question_id, 5)
+        
+        # FIXED: Use unique key for each question to prevent slider confusion
         answer = st.slider(
             "Your Response",
             min_value=1,
             max_value=10,
             value=current_answer,
+            key=f"slider_q{st.session_state.current_question}_{question_id}",  # Unique key per question
             help="1 = Strongly Disagree | 5 = Neutral | 10 = Strongly Agree"
         )
         
+        # Store the answer for this question
         st.session_state.answers[question_id] = answer
         
         labels = ["Strongly Disagree", "Disagree", "Somewhat Disagree", "Slightly Disagree", 
@@ -622,6 +948,7 @@ def main():
         </div>
         """, unsafe_allow_html=True)
         
+        # Navigation
         col1, col2, col3 = st.columns([1, 2, 1])
         
         with col1:
@@ -644,7 +971,7 @@ def main():
         display_final_results()
 
 def calculate_and_display_results():
-    """Calculate and prepare results for display"""
+    """Calculate results"""
     try:
         model, scaler, label_encoder, device = load_and_train_model()
         
@@ -683,7 +1010,7 @@ def calculate_and_display_results():
             st.rerun()
 
 def display_final_results():
-    """Display the final assessment results"""
+    """Display final results"""
     results = st.session_state.prediction_results
     
     create_results_visualization(
@@ -702,7 +1029,7 @@ def display_final_results():
     </div>
     """, unsafe_allow_html=True)
     
-    # Detailed breakdown with black theme
+    # Detailed breakdown
     st.markdown("""
     <h3 class="results-section-header">📊 Detailed Breakdown</h3>
     """, unsafe_allow_html=True)
@@ -713,8 +1040,10 @@ def display_final_results():
         'Score': results['probabilities']
     }).sort_values('Score', ascending=False)
     
+    # FIXED: Updated to use width='stretch' instead of use_container_width=True
     st.dataframe(breakdown_df[['Personality Type', 'Confidence']], width='stretch')
     
+    # Buttons
     col1, col2 = st.columns(2)
     with col1:
         if st.button("🔄 Retake Assessment", key="retake_btn"):
@@ -742,4 +1071,3 @@ Interpretation: {interpretation}
 
 if __name__ == "__main__":
     main()
-
