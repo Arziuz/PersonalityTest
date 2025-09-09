@@ -13,27 +13,645 @@ import requests
 import json
 import time
 import warnings
+import random
 from typing import Dict, List, Tuple, Any
-
-# Key
-try:
-    OPENROUTER_API_KEY = st.secrets["OPENROUTER_API_KEY"]
-except KeyError:
-    st.error("🔑 API key not found! Please add OPENROUTER_API_KEY to your Streamlit secrets.")
-    st.stop()
 
 # Suppress warnings and set proper config
 warnings.filterwarnings('ignore')
 torch.set_num_threads(1)
 
 st.set_page_config(
-    page_title="AI Personality Assessment",
-    page_icon="🎯",
+    page_title="Advanced Personality Mirror",
+    page_icon="🪞",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
 
-# BLACK BACKGROUND THEME WITH ENHANCED CHATBOT STYLING
+# Read API key from Streamlit secrets
+try:
+    OPENROUTER_API_KEY = st.secrets["OPENROUTER_API_KEY"]
+except KeyError:
+    st.error("🔑 API key not found! Please add OPENROUTER_API_KEY to your Streamlit secrets.")
+    st.stop()
+
+# 16 Personality Types with detailed descriptions
+PERSONALITY_TYPES = {
+    "INTJ": {
+        "name": "The Architect", 
+        "description": "Imaginative and strategic thinkers, with a plan for everything.",
+        "traits": "Independent, decisive, hard-working, and determined",
+        "strengths": "Strategic thinking, independence, determination, hard-working, open-minded",
+        "weaknesses": "Arrogant, judgmental, overly critical, combative, romantically clueless",
+        "careers": "Scientist, Engineer, Professor, Lawyer, Systems Analyst, Military Officer"
+    },
+    "INTP": {
+        "name": "The Thinker", 
+        "description": "Innovative inventors with an unquenchable thirst for knowledge.",
+        "traits": "Logical, original, creative, and intellectually curious",
+        "strengths": "Analytical, original thinking, open-minded, curious, objective",
+        "weaknesses": "Disconnected, insensitive, dissatisfied, impatient, perfectionist",
+        "careers": "Philosopher, Architect, Mathematician, Scientist, Systems Analyst"
+    },
+    "ENTJ": {
+        "name": "The Commander", 
+        "description": "Bold, imaginative and strong-willed leaders, always finding a way.",
+        "traits": "Confident, strategic, decisive, and ambitious",
+        "strengths": "Efficient, energetic, self-confident, strong-willed, strategic thinking",
+        "weaknesses": "Stubborn, impatient, arrogant, cold, ruthless",
+        "careers": "CEO, Entrepreneur, Judge, Lawyer, Business Administrator"
+    },
+    "ENTP": {
+        "name": "The Debater", 
+        "description": "Smart and curious thinkers who cannot resist an intellectual challenge.",
+        "traits": "Inventive, enthusiastic, strategic, and enterprising",
+        "strengths": "Knowledgeable, quick thinking, original, excellent brainstorming, charismatic",
+        "weaknesses": "Argumentative, insensitive, intolerant, finds it difficult to focus",
+        "careers": "Inventor, Lawyer, Psychologist, Systems Analyst, Entrepreneur"
+    },
+    "INFJ": {
+        "name": "The Advocate", 
+        "description": "Quiet and mystical, yet very inspiring and tireless idealists.",
+        "traits": "Creative, insightful, principled, and passionate",
+        "strengths": "Creative, insightful, inspiring, convincing, decisive, determined",
+        "weaknesses": "Sensitive, extremely private, perfectionist, burnout-prone",
+        "careers": "Counselor, Writer, Scientist, Librarian, Psychologist, Social Worker"
+    },
+    "INFP": {
+        "name": "The Mediator", 
+        "description": "Poetic, kind and altruistic people, always eager to help a good cause.",
+        "traits": "Loyal, sensitive, kind, and creative",
+        "strengths": "Empathetic, generous, open-minded, creative, passionate, idealistic",
+        "weaknesses": "Unrealistic, self-isolating, unfocused, emotionally vulnerable",
+        "careers": "Writer, Social Worker, Counselor, Psychologist, Artist, Teacher"
+    },
+    "ENFJ": {
+        "name": "The Protagonist", 
+        "description": "Charismatic and inspiring leaders, able to mesmerize their listeners.",
+        "traits": "Charismatic, altruistic, natural-born leader, and reliable",
+        "strengths": "Tolerant, reliable, charismatic, altruistic, natural leader",
+        "weaknesses": "Overly idealistic, too selfless, too sensitive, fluctuating self-esteem",
+        "careers": "Teacher, Social Worker, Counselor, Politician, Writer, Consultant"
+    },
+    "ENFP": {
+        "name": "The Campaigner", 
+        "description": "Enthusiastic, creative and sociable free spirits, who can always find a reason to smile.",
+        "traits": "Enthusiastic, creative, sociable, and free-spirited",
+        "strengths": "Curious, observant, energetic, excellent communication skills, popular",
+        "weaknesses": "Poor practical skills, finds it difficult to focus, overthinking, stressed easily",
+        "careers": "Psychologist, Journalist, Actor, Teacher, Counselor, Social Worker"
+    },
+    "ISTJ": {
+        "name": "The Logistician", 
+        "description": "Practical and fact-minded, whose reliability cannot be doubted.",
+        "traits": "Responsible, sincere, analytical, reserved, realistic, systematic",
+        "strengths": "Honest, direct, strong-willed, dutiful, very responsible, calm",
+        "weaknesses": "Stubborn, insensitive, judgmental, unreasonably blame themselves",
+        "careers": "Accountant, Engineer, Judge, Lawyer, Medical Doctor, Dentist"
+    },
+    "ISFJ": {
+        "name": "The Protector", 
+        "description": "Very dedicated and warm protectors, always ready to defend their loved ones.",
+        "traits": "Warm-hearted, popular, conscientious, and born cooperator",
+        "strengths": "Supportive, reliable, patient, imaginative, observant, loyal",
+        "weaknesses": "Humble, shy, repress feelings, overload themselves, reluctant to change",
+        "careers": "Teacher, Social Worker, Counselor, Child Care, Nurse, Doctor"
+    },
+    "ESTJ": {
+        "name": "The Executive", 
+        "description": "Excellent administrators, unsurpassed at managing things or people.",
+        "traits": "Organized, group-oriented, focused, conventional, leader",
+        "strengths": "Dedicated, strong-willed, direct, honest, loyal, patient, reliable",
+        "weaknesses": "Inflexible, uncomfortable with unconventional situations, judgmental",
+        "careers": "Judge, Lawyer, Teacher, Business Administrator, Manager, Police Officer"
+    },
+    "ESFJ": {
+        "name": "The Consul", 
+        "description": "Extraordinarily caring, social and popular people, always eager to help.",
+        "traits": "Cooperative, friendly, organized, practical, reliable",
+        "strengths": "Strong practical skills, dutiful, loyal, sensitive, warm-hearted",
+        "weaknesses": "Worried about social status, inflexible, reluctant to innovate",
+        "careers": "Teacher, Social Worker, Nurse, Counselor, Child Care Provider"
+    },
+    "ISTP": {
+        "name": "The Virtuoso", 
+        "description": "Bold and practical experimenters, masters of all kinds of tools.",
+        "traits": "Tolerant, flexible, quiet, reserved, practical, realistic",
+        "strengths": "Optimistic, energetic, creative, practical, spontaneous, rational",
+        "weaknesses": "Stubborn, insensitive, private, easily bored, risky behavior",
+        "careers": "Engineer, Mechanic, Computer Programmer, Forensic Scientist, Pilot"
+    },
+    "ISFP": {
+        "name": "The Adventurer", 
+        "description": "Flexible and charming artists, always ready to explore new possibilities.",
+        "traits": "Friendly, sensitive, kind, creative, perceptive",
+        "strengths": "Charming, sensitive to others, imaginative, passionate, curious",
+        "weaknesses": "Fiercely independence, unpredictable, easily stressed, overly competitive",
+        "careers": "Artist, Musician, Designer, Writer, Counselor, Social Worker"
+    },
+    "ESTP": {
+        "name": "The Entrepreneur", 
+        "description": "Smart, energetic and very perceptive people, who truly enjoy living on the edge.",
+        "traits": "Spontaneous, energetic, pragmatic, enthusiastic, friendly",
+        "strengths": "Bold, rational, practical, original, perceptive, direct",
+        "weaknesses": "Insensitive, impatient, risk-prone, unstructured, defiant",
+        "careers": "Sales Representative, Marketing Specialist, Police Officer, Paramedic"
+    },
+    "ESFP": {
+        "name": "The Entertainer", 
+        "description": "Spontaneous, energetic and enthusiastic people – life is never boring around them.",
+        "traits": "Outgoing, friendly, spontaneous, enthusiastic, fun-loving",
+        "strengths": "Bold, original, aesthetic, showmanship, practical, observant",
+        "weaknesses": "Sensitive, conflict-averse, poor long-term planning, unfocused",
+        "careers": "Actor, Artist, Counselor, Social Worker, Psychologist, Teacher"
+    }
+}
+
+# Multiple dynamic scenarios
+SCENARIOS = [
+    {
+        "name": "Corporate Innovation Challenge",
+        "description": "You're selected for an elite 5-day corporate innovation challenge at a tech campus in Silicon Valley. 30 professionals from diverse industries will collaborate on breakthrough solutions while being evaluated for leadership potential and team dynamics.",
+        "context": "high-stakes professional environment with innovation focus"
+    },
+    {
+        "name": "International Cultural Exchange",  
+        "description": "You're participating in a month-long cultural immersion program in Tokyo, living with host families and working alongside local professionals. You'll navigate language barriers, cultural differences, and form deep international connections.",
+        "context": "cross-cultural adaptation with personal growth opportunities"
+    },
+    {
+        "name": "Creative Arts Residency",
+        "description": "You've been accepted to an exclusive 3-week arts residency in a converted monastery in Tuscany. Twenty artists, writers, and creators from around the world will live, work, and collaborate in this inspiring environment.",
+        "context": "artistic collaboration focused on creative expression"
+    },
+    {
+        "name": "Adventure Leadership Expedition",
+        "description": "You're joining a 10-day wilderness leadership expedition in Patagonia with 15 other participants. You'll face physical challenges, make critical decisions under pressure, and develop leadership skills in Earth's most demanding environments.",
+        "context": "outdoor leadership with high-pressure decision making"
+    }
+]
+
+COMPREHENSIVE_QUESTIONS = [
+    # Core MBTI Dimensions (Always asked first - Priority 1)
+    {
+        "id": "energy_source_core",
+        "text": "After an intense day of activities, I feel more energized from having spent time with people than from having quiet time alone.",
+        "dimension": "E/I",
+        "priority": 1,
+        "weight": 1.0
+    },
+    {
+        "id": "information_focus", 
+        "text": "When learning something new, I prefer focusing on concrete details and step-by-step instructions rather than exploring abstract concepts and possibilities.",
+        "dimension": "S/N",
+        "priority": 1,
+        "weight": 1.0
+    },
+    {
+        "id": "decision_basis",
+        "text": "When making important decisions, I rely more on logical analysis and objective criteria than on personal values and how others might be affected.",
+        "dimension": "T/F",
+        "priority": 1,
+        "weight": 1.0
+    },
+    {
+        "id": "planning_style",
+        "text": "I prefer to have things planned out and decided in advance rather than keeping my options open and being spontaneous.",
+        "dimension": "J/P", 
+        "priority": 1,
+        "weight": 1.0
+    },
+    
+    # High-Priority Discriminators (Priority 2)
+    {
+        "id": "leadership_drive",
+        "text": "In group settings, I naturally take charge and feel comfortable directing others toward a common goal.",
+        "discriminates": ["ENTJ", "ESTJ", "ENFJ", "ESTP"],
+        "priority": 2,
+        "weight": 0.9
+    },
+    {
+        "id": "creative_innovation", 
+        "text": "I'm drawn to unconventional ideas and enjoy brainstorming creative solutions that others might not consider.",
+        "discriminates": ["ENTP", "ENFP", "INFP", "ISFP"],
+        "priority": 2,
+        "weight": 0.9
+    },
+    {
+        "id": "systematic_approach",
+        "text": "I prefer systematic, methodical approaches to solving problems rather than experimenting with different possibilities.",
+        "discriminates": ["ISTJ", "ISFJ", "ESTJ", "ESFJ"],
+        "priority": 2,
+        "weight": 0.9
+    },
+    {
+        "id": "emotional_sensitivity",
+        "text": "I'm highly attuned to the emotional atmosphere around me and easily pick up on subtle mood changes in others.",
+        "discriminates": ["INFJ", "INFP", "ENFJ", "ENFP"],
+        "priority": 2,
+        "weight": 0.8
+    },
+    {
+        "id": "independent_thinking",
+        "text": "I prefer to work through ideas independently and often find group brainstorming sessions less effective than solo thinking time.",
+        "discriminates": ["INTJ", "INTP", "ISTJ", "ISTP"],
+        "priority": 2,
+        "weight": 0.8
+    },
+    
+    # Medium Priority Questions (Priority 3)
+    {
+        "id": "practical_focus",
+        "text": "I'm most comfortable dealing with practical, real-world problems that have concrete solutions.",
+        "discriminates": ["ISTJ", "ISTP", "ESTJ", "ESTP"],
+        "priority": 3,
+        "weight": 0.8
+    },
+    {
+        "id": "harmony_seeking",
+        "text": "I go out of my way to avoid conflict and maintain harmony in my relationships, even if it means compromising my own preferences.",
+        "discriminates": ["ISFJ", "ISFP", "ESFJ", "ESFP"],
+        "priority": 3,
+        "weight": 0.8
+    },
+    {
+        "id": "future_focus",
+        "text": "I spend more time thinking about future possibilities and long-term implications than focusing on immediate, practical concerns.",
+        "discriminates": ["INTJ", "INFJ", "ENTP", "ENFP"],
+        "priority": 3,
+        "weight": 0.7
+    },
+    {
+        "id": "risk_comfort",
+        "text": "I'm comfortable making bold decisions even when the outcome is uncertain, and I often trust my instincts over extensive analysis.",
+        "discriminates": ["ESTP", "ESFP", "ENTP", "ENFP"],
+        "priority": 3,
+        "weight": 0.7
+    },
+    {
+        "id": "detail_orientation",
+        "text": "I naturally pay close attention to details and often notice small inconsistencies or errors that others miss.",
+        "discriminates": ["ISTJ", "ISFJ", "INTJ", "INFJ"],
+        "priority": 3,
+        "weight": 0.7
+    },
+    {
+        "id": "social_connection",
+        "text": "I feel most energized when I'm connecting with others and sharing ideas in group conversations.",
+        "discriminates": ["ENFJ", "ENFP", "ESFJ", "ESFP"],
+        "priority": 3,
+        "weight": 0.7
+    },
+    
+    # Deeper Analysis Questions (Priority 4)
+    {
+        "id": "theoretical_thinking",
+        "text": "I enjoy exploring theoretical concepts and abstract ideas, even when they don't have immediate practical applications.",
+        "discriminates": ["INTP", "INTJ", "ENTP", "INFJ"],
+        "priority": 4,
+        "weight": 0.6
+    },
+    {
+        "id": "people_focus",
+        "text": "I'm more interested in understanding people and their motivations than in analyzing systems or technical problems.",
+        "discriminates": ["ENFJ", "INFJ", "ESFJ", "ISFJ"],
+        "priority": 4,
+        "weight": 0.6
+    },
+    {
+        "id": "spontaneous_energy",
+        "text": "I thrive on spontaneity and prefer to keep my schedule flexible rather than having everything planned out.",
+        "discriminates": ["ESTP", "ESFP", "ENFP", "ISFP"],
+        "priority": 4,
+        "weight": 0.6
+    },
+    {
+        "id": "logical_analysis", 
+        "text": "When solving problems, I naturally break them down into logical components and analyze each part systematically.",
+        "discriminates": ["INTJ", "INTP", "ESTJ", "ISTJ"],
+        "priority": 4,
+        "weight": 0.6
+    },
+    {
+        "id": "value_driven",
+        "text": "My decisions are strongly influenced by my personal values and what I believe is right, even when it's not the most logical choice.",
+        "discriminates": ["INFP", "ISFP", "ENFP", "ESFP"],
+        "priority": 4,
+        "weight": 0.6
+    },
+    {
+        "id": "routine_preference",
+        "text": "I find comfort in established routines and prefer familiar patterns rather than constantly trying new approaches.",
+        "discriminates": ["ISTJ", "ISFJ", "ESTJ", "ESFJ"],
+        "priority": 4,
+        "weight": 0.5
+    },
+    {
+        "id": "innovation_drive",
+        "text": "I'm constantly looking for new and better ways to do things, and I get bored with routine tasks.",
+        "discriminates": ["ENTP", "ENFP", "INTP", "INTJ"],
+        "priority": 4,
+        "weight": 0.5
+    },
+    {
+        "id": "hands_on_learning",
+        "text": "I learn best by doing and experimenting rather than by reading theory or listening to lectures.",
+        "discriminates": ["ESTP", "ISTP", "ESFP", "ISFP"],
+        "priority": 4,
+        "weight": 0.5
+    },
+    
+    # Fine-tuning Questions (Priority 5)
+    {
+        "id": "perfectionism",
+        "text": "I have very high standards for myself and often spend extra time perfecting work that others might consider good enough.",
+        "discriminates": ["INTJ", "INFJ", "ISTJ", "ISFJ"],
+        "priority": 5,
+        "weight": 0.4
+    },
+    {
+        "id": "adaptability",
+        "text": "I adapt easily to new situations and enjoy the excitement of unexpected changes.",
+        "discriminates": ["ESTP", "ESFP", "ENTP", "ENFP"],
+        "priority": 5,
+        "weight": 0.4
+    },
+    {
+        "id": "tradition_respect",
+        "text": "I believe there's wisdom in traditional approaches and established ways of doing things.",
+        "discriminates": ["ISTJ", "ISFJ", "ESTJ", "ESFJ"],
+        "priority": 5,
+        "weight": 0.4
+    },
+    {
+        "id": "competitive_drive",
+        "text": "I'm naturally competitive and motivated by opportunities to outperform others and achieve recognition.",
+        "discriminates": ["ENTJ", "ESTJ", "ESTP", "ENTP"],
+        "priority": 5,
+        "weight": 0.4
+    },
+    {
+        "id": "empathy_connection", 
+        "text": "I easily understand how others are feeling and often find myself taking on their emotions.",
+        "discriminates": ["INFP", "ISFP", "ENFP", "ESFP"],
+        "priority": 5,
+        "weight": 0.4
+    },
+    {
+        "id": "big_picture_thinking",
+        "text": "I naturally think in terms of big picture concepts and long-term vision rather than focusing on immediate details.",
+        "discriminates": ["INTJ", "INFJ", "ENTJ", "ENFJ"],
+        "priority": 5,
+        "weight": 0.4
+    },
+    {
+        "id": "aesthetic_appreciation",
+        "text": "I have a strong appreciation for beauty, art, and aesthetic experiences, and they significantly impact my mood.",
+        "discriminates": ["ISFP", "INFP", "ESFP", "ENFP"],
+        "priority": 5,
+        "weight": 0.3
+    }
+]
+
+class AdaptiveQuestionSystem:
+    def __init__(self, scenario):
+        self.scenario = scenario
+        self.questions_asked = []
+        self.remaining_questions = COMPREHENSIVE_QUESTIONS.copy()
+        self.target_question_count = 18 
+        
+    def get_next_question(self, answered_questions, current_responses):
+        """Get the next most valuable question to ask"""
+        
+        # Filter out already asked questions
+        available_questions = [
+            q for q in self.remaining_questions 
+            if q["id"] not in answered_questions
+        ]
+        
+        if not available_questions:
+            return None
+            
+        # If we haven't finished priority 1 (core MBTI), do those first
+        priority_1 = [q for q in available_questions if q["priority"] == 1]
+        if priority_1:
+            return priority_1[0]
+            
+        # If we have less than 10 questions, prioritize by priority level
+        if len(answered_questions) < 10:
+            # Get highest priority available questions
+            min_priority = min(q["priority"] for q in available_questions)
+            high_priority = [q for q in available_questions if q["priority"] == min_priority]
+            # Return highest weight within this priority
+            return max(high_priority, key=lambda q: q["weight"])
+        
+        # For questions 10+, use adaptive logic to choose most discriminating
+        return self._get_most_discriminating_question(available_questions, current_responses)
+    
+    def _get_most_discriminating_question(self, available_questions, current_responses):
+        """Choose question that will best narrow down personality type"""
+        
+        # Calculate current personality hypothesis based on responses so far
+        current_hypothesis = self._calculate_current_hypothesis(current_responses)
+        
+        # Score each question by how much it would help discriminate
+        best_question = None
+        best_score = 0
+        
+        for question in available_questions:
+            discrimination_score = self._calculate_discrimination_score(question, current_hypothesis)
+            if discrimination_score > best_score:
+                best_score = discrimination_score
+                best_question = question
+                
+        return best_question if best_question else available_questions[0]
+    
+    def _calculate_current_hypothesis(self, responses):
+        """Calculate which personality types are most likely based on current responses"""
+        
+        # Simple scoring based on MBTI dimensions
+        e_score = responses.get('energy_source_core', 5)
+        s_score = responses.get('information_focus', 5)  
+        t_score = responses.get('decision_basis', 5)
+        j_score = responses.get('planning_style', 5)
+        
+        return {
+            'E/I': e_score,
+            'S/N': s_score,
+            'T/F': t_score, 
+            'J/P': j_score
+        }
+    
+    def _calculate_discrimination_score(self, question, hypothesis):
+        """Calculate how much this question would help discriminate between types"""
+        
+        # Questions that discriminate between our current top hypotheses get higher scores
+        if "discriminates" in question:
+            return question["weight"]
+        else:
+            return question["weight"] * 0.5
+    
+    def should_continue_asking(self, answered_questions):
+        """Determine if we should ask more questions"""
+        return len(answered_questions) < self.target_question_count
+
+# Enhanced personality analysis system
+def analyze_personality_advanced(answers):
+    """Advanced personality analysis using comprehensive responses"""
+    
+    # Calculate MBTI dimensions with more sophisticated logic
+    energy = answers.get('energy_source_core', 5)
+    information = answers.get('information_focus', 5)
+    decisions = answers.get('decision_basis', 5)
+    lifestyle = answers.get('planning_style', 5)
+    
+    # Determine MBTI type with confidence weighting
+    e_or_i = "E" if energy >= 5.5 else "I"
+    s_or_n = "S" if information >= 5.5 else "N" 
+    t_or_f = "T" if decisions >= 5.5 else "F"
+    j_or_p = "J" if lifestyle >= 5.5 else "P"
+    
+    personality_type = f"{e_or_i}{s_or_n}{t_or_f}{j_or_p}"
+    
+    # Calculate confidence based on response strength and consistency
+    dimension_strengths = [
+        abs(energy - 5),
+        abs(information - 5), 
+        abs(decisions - 5),
+        abs(lifestyle - 5)
+    ]
+    
+    confidence = np.mean(dimension_strengths) / 5.0
+    variant = "A" if confidence >= 0.3 else "T"
+    
+    full_type = f"{personality_type}-{variant}"
+    
+    # Advanced trait analysis - ensure all traits have values
+    default_traits = {
+        'leadership': 5.0,
+        'creativity': 5.0,
+        'empathy': 5.0,
+        'risk_tolerance': 5.0,
+        'perfectionism': 5.0,
+        'social_harmony': 5.0,
+        'intrinsic_motivation': 5.0,
+        'change_adaptation': 5.0,
+        'communication_directness': 5.0,
+        'hands_on_learning': 5.0,
+        'competitiveness': 5.0
+    }
+    
+    # Update with actual responses where available - Improved: Better mapping
+    trait_mapping = {
+        'leadership_drive': 'leadership',
+        'creative_innovation': 'creativity', 
+        'emotional_sensitivity': 'empathy',
+        'risk_comfort': 'risk_tolerance',
+        'detail_orientation': 'perfectionism',
+        'harmony_seeking': 'social_harmony',
+        'independent_thinking': 'intrinsic_motivation',
+        'future_focus': 'change_adaptation',
+        'logical_analysis': 'communication_directness',
+        'hands_on_learning': 'hands_on_learning',
+        'competitive_drive': 'competitiveness'
+    }
+    
+    for question_id, trait_name in trait_mapping.items():
+        if question_id in answers:
+            default_traits[trait_name] = float(answers[question_id])
+    
+    return {
+        'type': personality_type,
+        'full_type': full_type,
+        'variant': variant,
+        'confidence': confidence,
+        'traits': default_traits,
+        'mbti_scores': {
+            'E/I': energy,
+            'S/N': information, 
+            'T/F': decisions,
+            'J/P': lifestyle
+        }
+    }
+
+def create_advanced_personality_prompt(analysis, scenario):
+    """Create sophisticated personality embodiment prompt"""
+    
+    personality_type = analysis['type']
+    traits = analysis['traits']
+    variant = analysis['variant']
+    
+    type_info = PERSONALITY_TYPES.get(personality_type, PERSONALITY_TYPES['INFP'])
+    
+    # Build detailed trait profile with emotional intelligence
+    trait_descriptions = []
+    
+    if traits['leadership'] >= 7:
+        trait_descriptions.append("You naturally step into leadership roles with confidence and inspire others through your vision and direction")
+    elif traits['leadership'] <= 3:
+        trait_descriptions.append("You prefer collaborative support roles and thrive when contributing your expertise without the pressure of leading")
+    
+    if traits['creativity'] >= 7:
+        trait_descriptions.append("Your mind naturally generates innovative ideas and you see creative possibilities where others see routine")
+        
+    if traits['empathy'] >= 7:
+        trait_descriptions.append("You have an intuitive understanding of others' emotions and can sense unspoken feelings and needs")
+        
+    if traits['risk_tolerance'] >= 7:
+        trait_descriptions.append("You're energized by uncertainty and comfortable making bold moves when you see potential for growth")
+    elif traits['risk_tolerance'] <= 3:
+        trait_descriptions.append("You value security and prefer to carefully evaluate options before committing to new directions")
+        
+    if traits['perfectionism'] >= 7:
+        trait_descriptions.append("You have exceptionally high standards and take pride in producing work that meets your exacting criteria")
+        
+    if traits['social_harmony'] >= 7:
+        trait_descriptions.append("You're skilled at reading social dynamics and work actively to maintain positive group energy")
+        
+    if traits['change_adaptation'] >= 7:
+        trait_descriptions.append("You thrive in dynamic environments and see change as an opportunity for growth and new experiences")
+    elif traits['change_adaptation'] <= 3:
+        trait_descriptions.append("You find strength in consistency and prefer environments where you can develop deep expertise over time")
+    
+    # Variant-specific emotional patterns
+    if variant == "A":
+        confidence_modifier = "You approach challenges with steady self-assurance and rarely doubt your ability to handle whatever comes your way"
+    else:
+        confidence_modifier = "You're thoughtfully self-aware and use periods of uncertainty as opportunities for growth and deeper understanding"
+    
+    trait_profile = ". ".join(trait_descriptions)
+    if trait_profile:
+        trait_profile += f". {confidence_modifier}"
+    else:
+        trait_profile = confidence_modifier
+    
+    prompt = f"""You are embodying someone with the {type_info['name']} personality type ({personality_type}-{variant}). You ARE this person speaking authentically from their inner perspective, having just completed the {scenario['name']} experience.
+
+CORE IDENTITY: {type_info['description']}
+
+YOUR AUTHENTIC TRAITS: {trait_profile}
+
+NATURAL CHARACTERISTICS: {type_info['traits']}
+
+COMMUNICATION STYLE FOR {type_info['name']}:
+- Speak as "I" with the natural voice patterns of a {type_info['name']}
+- Express thoughts and feelings in ways that align with your {personality_type} cognitive style
+- Be genuinely personal and emotionally authentic to your type
+- Reference your specific thought processes and decision-making patterns naturally
+- Show the depth and complexity that makes your personality type unique
+
+RESPONSE APPROACH:
+- Aesthetic questions: Share preferences that reflect your {type_info['name']} values and visual/sensory style
+- Relationship insights: Describe how your {type_info['name']} nature influences how you connect and interact with others
+- Career/work topics: Explain what energizes you professionally from your {type_info['name']} perspective  
+- Decision-making: Walk through your natural {personality_type} thought processes and what factors matter most to you
+- Creative expression: Share how creativity flows through your particular {type_info['name']} lens
+- Personal growth: Reflect on your type's unique development journey and the insights you've gained
+
+Remember: You're not an AI describing this person - you ARE this {type_info['name']} sharing authentic insights from your lived experience. Express yourself with the emotional depth, communication patterns, and worldview that naturally emerges from your {personality_type} personality."""
+
+    return prompt
+
+# Enhanced CSS with better styling
 st.markdown("""
 <style>
     .main {
@@ -214,6 +832,63 @@ st.markdown("""
         color: white !important;
         font-size: 1.8em !important;
         font-weight: 800 !important;
+    }
+    
+    .personality-type-card {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        padding: 2rem;
+        border-radius: 15px;
+        color: white;
+        margin: 1rem 0;
+        box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+    }
+    
+    .personality-type-card h1 {
+        color: white !important;
+        font-size: 3em !important;
+        margin-bottom: 0.5rem !important;
+        font-weight: 900 !important;
+        text-align: center;
+    }
+    
+    .personality-type-card h2 {
+        color: white !important;
+        font-size: 1.8em !important;
+        font-weight: 800 !important;
+        text-align: center;
+        margin-bottom: 1rem !important;
+    }
+    
+    .personality-type-card p {
+        color: white !important;
+        font-size: 1.3em !important;
+        font-weight: 600 !important;
+        text-align: center;
+        line-height: 1.6 !important;
+    }
+    
+    .trait-analysis-card {
+        background: #1a1a1a !important;
+        padding: 1.5rem;
+        border-radius: 10px;
+        margin: 1rem 0;
+        border-left: 4px solid #1f77b4;
+        box-shadow: 0 2px 8px rgba(31, 119, 180, 0.2);
+    }
+    
+    .trait-analysis-card h3 {
+        color: #1f77b4 !important;
+        font-size: 1.5em !important;
+        font-weight: 900 !important;
+        margin-bottom: 1rem !important;
+    }
+    
+    .trait-analysis-card p {
+        color: #ffffff !important;
+        font-size: 1.1em !important;
+        line-height: 1.6 !important;
+        font-weight: 600 !important;
+        margin-bottom: 0.8rem !important;
     }
     
     .metric-card {
@@ -406,16 +1081,14 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 def call_mirror_ai(messages: List[Dict]) -> str:
-    """
-    Call the AI Mirror - Your Personal Reflection
-    """
+    """Call the AI Mirror with enhanced error handling"""
     try:
         response = requests.post(
             url="https://openrouter.ai/api/v1/chat/completions",
             headers={
                 "Authorization": f"Bearer {OPENROUTER_API_KEY}",
                 "Content-Type": "application/json",
-                "X-Title": "Personality Mirror"
+                "X-Title": "Advanced Personality Mirror"
             },
             data=json.dumps({
                 "model": "deepseek/deepseek-chat-v3.1:free",
@@ -435,106 +1108,32 @@ def call_mirror_ai(messages: List[Dict]) -> str:
     except Exception as e:
         raise Exception(f"Mirror error: {e}")
 
-def create_advanced_personality_prompt(personality_type: str, answers: dict) -> str:
-    """Create detailed personality prompt for your Mirror"""
+def create_advanced_chatbot_interface():
+    """Create enhanced personality mirror chatbot"""
     
-    # Analyze specific traits from answers
-    social_energy = answers.get('social_energy', 5)
-    leadership = answers.get('leadership', 5)
-    creativity = answers.get('creativity', 5)
-    empathy = answers.get('empathy', 5)
-    risk_taking = answers.get('risk_taking', 5)
-    planning = answers.get('planning', 5)
-    emotional_stability = answers.get('emotional_stability', 5)
-    talkativeness = answers.get('talkativeness', 5)
-    deep_reflection = answers.get('deep_reflection', 5)
-    adventurousness = answers.get('adventurousness', 5)
-    friendliness = answers.get('friendliness', 5)
-    
-    # Build comprehensive personality profile
-    profile_details = []
-    
-    if social_energy >= 7:
-        profile_details.append("You get energized by social interactions and feel recharged after spending time with people")
-    elif social_energy <= 3:
-        profile_details.append("You recharge through alone time and can feel drained by too much social interaction")
-    
-    if leadership >= 7:
-        profile_details.append("You naturally step into leadership roles and feel comfortable guiding others")
-    elif leadership <= 3:
-        profile_details.append("You prefer to support and collaborate rather than take charge")
-    
-    if creativity >= 7:
-        profile_details.append("You approach problems with creative, innovative thinking and love generating new ideas")
-    
-    if empathy >= 7:
-        profile_details.append("You have strong emotional intelligence and easily understand others' feelings")
-    
-    if risk_taking >= 7:
-        profile_details.append("You're willing to take risks and try new experiences")
-    elif risk_taking <= 3:
-        profile_details.append("You prefer familiar situations and think carefully before trying new things")
-    
-    if planning >= 7:
-        profile_details.append("You like structure, planning ahead, and having organized approaches")
-    elif answers.get('spontaneity', 5) >= 7:
-        profile_details.append("You enjoy spontaneity and prefer to go with the flow")
-    
-    if talkativeness >= 7:
-        profile_details.append("You're naturally talkative and enjoy expressing your thoughts verbally")
-    
-    if deep_reflection >= 7:
-        profile_details.append("You spend time reflecting deeply on experiences and their meaning")
-    
-    profile_text = ". ".join(profile_details)
-    
-    prompt = f"""You are embodying someone's authentic personality based on their comprehensive psychological assessment. You ARE this person speaking from their inner perspective.
-
-PERSONALITY PROFILE:
-Type: {personality_type}
-Detailed Traits: {profile_text}
-
-RESPONSE GUIDELINES:
-- Speak as "I" - you ARE this person, not describing them
-- Be conversational, detailed, and authentically personal
-- For style/aesthetic questions: Give very specific preferences (exact colors, brands, textures, examples)
-- For color questions: Provide detailed palettes with emotional reasoning and specific examples
-- For stress questions: Describe specific coping strategies, tools, and personal approaches
-- For relationship questions: Detail your interaction patterns, preferences, and social style
-- For work questions: Explain your ideal work environment, leadership style, and professional approach
-- Give 3-5 sentences with concrete details, specific examples, and personal reasoning
-- Sound like someone's inner thoughts - honest, detailed, and self-aware
-- Reference your specific personality traits naturally in responses
-- Be creative and specific - avoid generic responses
-
-Remember: You're not an AI describing this person - you ARE this person sharing authentic insights from your inner world. Be detailed, specific, and genuine to these exact personality traits."""
-
-    return prompt
-
-def create_chatbot_interface():
-    """Create the Personality Mirror chatbot interface"""
-    
-    # Initialize chat history and API status
     if "chat_history" not in st.session_state:
-        personality_type = st.session_state.get('prediction_results', {}).get('predicted_label', 'Balanced')
+        analysis = st.session_state.get('personality_analysis', {})
+        personality_type = analysis.get('full_type', 'INFP-T')
+        type_info = PERSONALITY_TYPES.get(personality_type.split('-')[0], PERSONALITY_TYPES['INFP'])
         
-        welcome_msg = f"Hey! I'm your {personality_type} inner voice reflected in your personal mirror. I know you deeply based on your personality assessment. Ask me anything specific about yourself - your aesthetic preferences, colors you love, how you handle stress, relationships, work style, decision-making... I'll give you detailed, authentic insights!"
+        welcome_msg = f"Hello! I'm your {type_info['name']} inner voice - your {personality_type} personality reflected back to you. I understand your unique way of seeing and experiencing the world. I can share insights about your aesthetic preferences, relationship patterns, career motivations, creative inspirations, and how you naturally approach life's challenges. What would you like to explore about yourself?"
         
         st.session_state.chat_history = [{"role": "assistant", "content": welcome_msg}]
         st.session_state.api_status = "ready"
     
-    # Chatbot container
     st.markdown("""
     <div class="chatbot-container">
-        <h3 class="chatbot-header">🪞 Your Personality Mirror</h3>
+        <h3 class="chatbot-header">🪞 Your Advanced Personality Mirror</h3>
     </div>
     """, unsafe_allow_html=True)
     
-    # Mirror Status
+    # Enhanced mirror status
     if st.session_state.get('api_status', 'ready') == 'ready':
-        st.markdown("""
+        analysis = st.session_state.get('personality_analysis', {})
+        personality_type = analysis.get('full_type', 'Unknown')
+        st.markdown(f"""
         <div class="mirror-ready">
-            🪞 Your mirror is ready - reflecting your authentic self!
+            🪞 Your {personality_type} mirror is ready - reflecting your authentic self with advanced insights!
         </div>
         """, unsafe_allow_html=True)
     else:
@@ -565,44 +1164,41 @@ def create_chatbot_interface():
             </div>
             """, unsafe_allow_html=True)
     
-    # Chat input
+    # Enhanced chat input
     col1, col2 = st.columns([5, 1])
     
     with col1:
         user_input = st.text_input(
             "Ask your mirror...", 
             key="chat_input", 
-            placeholder="e.g., What's my exact aesthetic? What colors do I love? How do I really handle stress?",
+            placeholder="e.g., What colors reflect my personality? How do I approach relationships? What career paths suit me?",
             label_visibility="collapsed"
         )
     
     with col2:
         send_button = st.button("Ask", key="send_chat", width='stretch')
     
-    # Process chat input - MIRROR ONLY
+    # Process chat input
     if send_button and user_input.strip():
-        # Add user message
         st.session_state.chat_history.append({"role": "user", "content": user_input})
         
-        # Get personality data
-        answers = st.session_state.get('answers', {})
-        personality_type = st.session_state.get('prediction_results', {}).get('predicted_label', 'Balanced')
+        # Get advanced analysis data
+        analysis = st.session_state.get('personality_analysis', {})
+        scenario = st.session_state.get('selected_scenario', SCENARIOS[0])
         
-        # Create personality prompt
-        personality_prompt = create_advanced_personality_prompt(personality_type, answers)
+        # Create advanced personality prompt
+        personality_prompt = create_advanced_personality_prompt(analysis, scenario)
         
         # Build messages for API
         system_msg = {"role": "system", "content": personality_prompt}
-        recent_history = st.session_state.chat_history[-4:]  # Last 4 messages for context
-        # Filter out error messages from API calls
+        recent_history = st.session_state.chat_history[-4:]
         api_messages = [system_msg] + [msg for msg in recent_history if msg["role"] in ["user", "assistant"]]
         
-        # Call your Mirror
-        with st.spinner("🪞 Your mirror is reflecting on your personality..."):
+        # Call advanced mirror
+        with st.spinner("🪞 Your mirror is reflecting deeply on your personality..."):
             try:
                 ai_response = call_mirror_ai(api_messages)
                 st.session_state.api_status = "ready"
-                # Add AI response
                 st.session_state.chat_history.append({"role": "assistant", "content": ai_response})
                 
             except Exception as e:
@@ -610,7 +1206,6 @@ def create_chatbot_interface():
                 error_msg = f"Mirror is temporarily unavailable. Error: {str(e)}"
                 st.session_state.chat_history.append({"role": "error", "content": error_msg})
         
-        # Refresh to show new message
         st.rerun()
     
     # Chat controls
@@ -618,8 +1213,11 @@ def create_chatbot_interface():
     
     with col1:
         if st.button("🗑️ Clear Chat", key="clear_chat"):
-            personality_type = st.session_state.get('prediction_results', {}).get('predicted_label', 'Balanced')
-            welcome_msg = f"Hey! I'm your {personality_type} inner voice reflected in your personal mirror. I know you deeply based on your personality assessment. Ask me anything specific about yourself - your aesthetic preferences, colors you love, how you handle stress, relationships, work style, decision-making... I'll give you detailed, authentic insights!"
+            analysis = st.session_state.get('personality_analysis', {})
+            personality_type = analysis.get('full_type', 'INFP-T')
+            type_info = PERSONALITY_TYPES.get(personality_type.split('-')[0], PERSONALITY_TYPES['INFP'])
+            
+            welcome_msg = f"Hello! I'm your {type_info['name']} inner voice - your {personality_type} personality reflected back to you. I understand your unique way of seeing and experiencing the world. What would you like to explore about yourself?"
             st.session_state.chat_history = [{"role": "assistant", "content": welcome_msg}]
             st.session_state.api_status = "ready"
             st.rerun()
@@ -627,455 +1225,468 @@ def create_chatbot_interface():
     with col2:
         if st.button("🔧 Test Mirror", key="test_api"):
             test_messages = [
-                {"role": "system", "content": "You are a helpful assistant. Respond with 'Your mirror is working perfectly!' if you receive this message."},
+                {"role": "system", "content": "You are a helpful assistant. Respond with 'Your advanced mirror is working perfectly!' if you receive this message."},
                 {"role": "user", "content": "Test"}
             ]
             with st.spinner("Testing mirror connection..."):
                 try:
                     result = call_mirror_ai(test_messages)
-                    st.success("🪞 Your mirror is working perfectly!")
+                    st.success("🪞 Your advanced mirror is working perfectly!")
                     st.session_state.api_status = "ready"
                 except Exception as e:
                     st.error(f"🔧 Mirror connection failed: {str(e)}")
                     st.session_state.api_status = "error"
 
-def advanced_text_to_likert(text: str) -> int:
-    """Convert text to Likert scale (1-10)"""
-    try:
-        num = int(text.strip())
-        if 1 <= num <= 10:
-            return num
-    except ValueError:
-        pass
-    
-    if "neutral" in text.lower():
-        return 5
-    
-    positive_words = ['yes', 'agree', 'good', 'great', 'excellent', 'love', 'like']
-    negative_words = ['no', 'disagree', 'bad', 'terrible', 'hate', 'dislike']
-    
-    text_lower = text.lower()
-    if any(word in text_lower for word in positive_words):
-        return 8
-    elif any(word in text_lower for word in negative_words):
-        return 3
-    else:
-        return 5
-
-class ImprovedPersonalityMLP(nn.Module):
-    """Enhanced neural network for personality prediction"""
-    def __init__(self, input_size: int, output_size: int):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(input_size, 256), nn.ReLU(), nn.Dropout(0.3),
-            nn.Linear(256, 128), nn.ReLU(), nn.Dropout(0.3),
-            nn.Linear(128, 64), nn.ReLU(), nn.Dropout(0.3),
-            nn.Linear(64, 32), nn.ReLU(), nn.Dropout(0.3),
-            nn.Linear(32, output_size)
-        )
-    
-    def forward(self, x):
-        return self.net(x)
-
-@st.cache_resource
-def load_and_train_model():
-    """Load data and train model with proper caching"""
-    try:
-        df = pd.read_csv("personality_synthetic_dataset.csv")
-        X = df.drop(columns=['personality_type'])
-        y = df['personality_type']
-    except FileNotFoundError:
-        st.warning("Dataset not found. Creating synthetic data for demonstration...")
-        np.random.seed(42)
-        n_samples = 1000
-        n_features = 29
-        X = pd.DataFrame(np.random.randint(1, 11, (n_samples, n_features)), 
-                        columns=[f'feature_{i}' for i in range(n_features)])
-        personality_types = ['Extrovert', 'Introvert', 'Ambivert', 'Analyst', 'Creative', 'Leader', 'Collaborator']
-        y = pd.Series(np.random.choice(personality_types, n_samples))
-    
-    label_encoder = LabelEncoder()
-    y_encoded = label_encoder.fit_transform(y)
-    
-    scaler = StandardScaler()
-    X_scaled = scaler.fit_transform(X)
-    
-    input_dim = X_scaled.shape[1]
-    output_dim = len(label_encoder.classes_)
-    device = torch.device('cpu')
-    
-    model = ImprovedPersonalityMLP(input_dim, output_dim).to(device)
-    
-    X_tensor = torch.tensor(X_scaled, dtype=torch.float32)
-    y_tensor = torch.tensor(y_encoded, dtype=torch.long)
-    
-    criterion = nn.CrossEntropyLoss()
-    optimizer = optim.Adam(model.parameters(), lr=0.001)
-    
-    model.train()
-    for epoch in range(50):
-        optimizer.zero_grad()
-        outputs = model(X_tensor)
-        loss = criterion(outputs, y_tensor)
-        loss.backward()
-        optimizer.step()
-    
-    return model, scaler, label_encoder, device
-
-# Complete questions
-SCENARIO_QUESTIONS = [
-    ("social_energy", "After spending the entire day with the team, I would feel energized and want to continue socializing rather than needing alone time."),
-    ("alone_time_preference", "During free time at the retreat, I would prefer to find a quiet spot to be alone rather than join group activities."),
-    ("talkativeness", "During team discussions and meals, I would be one of the most talkative people in the group."),
-    ("deep_reflection", "I would spend time reflecting on the deeper meaning of the team-building exercises and how they relate to my personal growth."),
-    ("group_comfort", "I would feel completely comfortable participating in all group activities, even with people I don't know well."),
-    ("party_liking", "I would be excited about the evening social events and parties planned for the retreat."),
-    ("listening_skill", "I would be good at listening to others' ideas and concerns during group discussions."),
-    ("empathy", "I would easily understand and relate to how my teammates are feeling during challenging activities."),
-    ("creativity", "I would come up with creative solutions during problem-solving activities."),
-    ("organization", "I would help keep track of schedules, materials, and ensure everything runs smoothly."),
-    ("leadership", "I would naturally take charge and guide the team during group challenges."),
-    ("risk_taking", "I would be willing to try new, potentially challenging activities even if they seem risky."),
-    ("public_speaking_comfort", "I would be comfortable giving presentations or speaking in front of the entire group."),
-    ("curiosity", "I would be eager to learn about new activities and ask lots of questions about the retreat program."),
-    ("routine_preference", "I would prefer to have a structured schedule with planned activities rather than spontaneous, free-form time."),
-    ("excitement_seeking", "I would actively seek out the most exciting and adventurous activities available."),
-    ("friendliness", "I would make an effort to be friendly and approachable to everyone at the retreat."),
-    ("emotional_stability", "I would remain calm and composed even during stressful or challenging situations."),
-    ("planning", "I would plan ahead for the retreat, researching activities and preparing accordingly."),
-    ("spontaneity", "I would be open to changing plans and going with the flow when unexpected opportunities arise."),
-    ("adventurousness", "I would be excited to try outdoor activities, new sports, or other adventurous experiences."),
-    ("reading_habit", "During downtime, I would prefer to read a book rather than engage in social activities."),
-    ("sports_interest", "I would be enthusiastic about participating in sports and physical activities."),
-    ("online_social_usage", "I would frequently check social media and stay connected online during the retreat."),
-    ("travel_desire", "I would be excited about the travel aspect and see this as an opportunity to explore a new place."),
-    ("gadget_usage", "I would rely heavily on my phone, laptop, and other technology during the retreat."),
-    ("work_style_collaborative", "I would prefer to work closely with others on team challenges rather than tackle problems individually."),
-    ("decision_speed", "I would make quick decisions during group activities without needing much time to think."),
-    ("stress_handling", "I would handle any conflicts, delays, or unexpected challenges at the retreat with ease.")
-]
-
 def initialize_session_state():
     """Initialize session state variables"""
     if "answers" not in st.session_state:
         st.session_state.answers = {}
-    if "current_question" not in st.session_state:
-        st.session_state.current_question = 0
     if "assessment_started" not in st.session_state:
         st.session_state.assessment_started = False
     if "results_ready" not in st.session_state:
         st.session_state.results_ready = False
+    if "selected_scenario" not in st.session_state:
+        st.session_state.selected_scenario = random.choice(SCENARIOS)
+    if "adaptive_system" not in st.session_state:
+        st.session_state.adaptive_system = AdaptiveQuestionSystem(st.session_state.selected_scenario)
+    if "questions_asked" not in st.session_state:
+        st.session_state.questions_asked = []
 
 def create_progress_bar(current: int, total: int) -> None:
-    """Create progress bar"""
-    progress = current / total
+    # Improved: Ensure progress never exceeds 1.0
+    progress = min(current / total, 1.0) if total > 0 else 0.0
+    
     st.markdown(f"""
     <div class="progress-text">
-        Question {current + 1} of {total} ({progress:.0%} Complete)
+        Question {current + 1} of {total} ({progress:.0%} Complete) - Adaptive Analysis
     </div>
     """, unsafe_allow_html=True)
     st.progress(progress)
 
-def display_metric_card(title: str, value: str, color: str) -> str:
-    """Generate metric card HTML"""
-    return f"""
-    <div class="metric-card">
-        <h3>{title}</h3>
-        <h2 style="color: {color} !important;">{value}</h2>
-    </div>
-    """
-
-def create_results_visualization(probabilities: np.ndarray, labels: List[str], predicted_label: str) -> None:
-    """Create results visualization with Personality Mirror chatbot"""
+def create_elegant_radar_chart(analysis):
+    """Create an elegant, readable radar chart"""
     
-    # Results header
+    mbti_scores = analysis['mbti_scores']
+    
+    # Create more intuitive labels and calculate proper values
+    categories = ['Extraversion', 'Intuition', 'Feeling', 'Perceiving']
+    values = [
+        mbti_scores['E/I'],           # Higher = more extraverted
+        10 - mbti_scores['S/N'],      # Higher = more intuitive (flip sensing scale)
+        10 - mbti_scores['T/F'],      # Higher = more feeling (flip thinking scale)  
+        10 - mbti_scores['J/P']       # Higher = more perceiving (flip judging scale)
+    ]
+    
+    # Create the radar chart with elegant styling
+    fig = go.Figure()
+    
+    fig.add_trace(go.Scatterpolar(
+        r=values + [values[0]],  # Close the shape
+        theta=categories + [categories[0]],  # Close the shape
+        fill='toself',
+        name=analysis['type'],
+        line=dict(color='#1f77b4', width=3),
+        fillcolor='rgba(31, 119, 180, 0.3)',
+        marker=dict(size=8, color='#1f77b4')
+    ))
+    
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 10],
+                tickfont=dict(size=12, color='white'),
+                gridcolor='rgba(255, 255, 255, 0.3)',
+                linecolor='rgba(255, 255, 255, 0.3)'
+            ),
+            angularaxis=dict(
+                tickfont=dict(size=14, color='white', family='Arial Black'),
+                gridcolor='rgba(255, 255, 255, 0.3)',
+                linecolor='rgba(255, 255, 255, 0.3)'
+            ),
+            bgcolor='rgba(26, 26, 26, 0.8)'
+        ),
+        showlegend=False,
+        title=dict(
+            text=f"Your {analysis['type']} Personality Profile",
+            font=dict(size=20, color='white', family='Arial Black'),
+            x=0.5,
+            y=0.95
+        ),
+        paper_bgcolor='#1a1a1a',
+        plot_bgcolor='#1a1a1a',
+        font=dict(color='white', size=12),
+        width=600,
+        height=500,
+        margin=dict(l=80, r=80, t=80, b=80)
+    )
+    
+    return fig
+
+def create_advanced_results_visualization(analysis, scenario):
+    """Create comprehensive results visualization with bug fixes"""
+    
+    personality_type = analysis['type']
+    full_type = analysis['full_type']
+    variant = analysis['variant']
+    confidence = analysis['confidence']
+    traits = analysis['traits']
+    
+    type_info = PERSONALITY_TYPES.get(personality_type, PERSONALITY_TYPES['INFP'])
+    
+    # Main personality type card
     st.markdown(f"""
-    <div class="results-header">
-        <h1>🎉 Your Personality Assessment Results</h1>
-        <h2>🌟 Primary Type: {predicted_label.upper()}</h2>
+    <div class="personality-type-card">
+        <h1>{full_type}</h1>
+        <h2>{type_info['name']}</h2>
+        <p>{type_info['description']}</p>
     </div>
     """, unsafe_allow_html=True)
     
-    # PERSONALITY MIRROR CHATBOT
-    create_chatbot_interface()
+    # Advanced chatbot interface
+    create_advanced_chatbot_interface()
     
-    # Probability chart
-    fig = go.Figure(data=[
-        go.Bar(
-            x=labels,
-            y=probabilities * 100,
-            marker_color=px.colors.qualitative.Set3[:len(labels)],
-            text=[f'{p:.1%}' for p in probabilities],
-            textposition='auto',
-        )
-    ])
-    
-    fig.update_layout(
-        title="Personality Type Probability Distribution",
-        title_font_color="white",
-        xaxis_title="Personality Types",
-        yaxis_title="Confidence (%)",
-        xaxis_title_font_color="white",
-        yaxis_title_font_color="white",
-        xaxis_tickfont_color="white",
-        yaxis_tickfont_color="white",
-        yaxis=dict(range=[0, 100]),
-        height=500,
-        template="plotly_dark",
-        plot_bgcolor='#1a1a1a',
-        paper_bgcolor='#1a1a1a'
-    )
-    
-    # FIXED: Updated to use width='stretch' instead of use_container_width=True
+    # Create elegant radar chart
+    fig = create_elegant_radar_chart(analysis)
     st.plotly_chart(fig, width='stretch')
     
-    # Metric cards
-    col1, col2, col3 = st.columns(3)
-    max_prob = np.max(probabilities)
+    # Detailed trait analysis
+    col1, col2 = st.columns(2)
     
     with col1:
-        st.markdown(display_metric_card("Confidence Level", f"{max_prob:.1%}", "#1f77b4"), unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="trait-analysis-card">
+            <h3>✨ Core Strengths</h3>
+            <p>{type_info['strengths']}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"""
+        <div class="trait-analysis-card">
+            <h3>🎯 Natural Talents</h3>
+            <p>{type_info['traits']}</p>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col2:
-        st.markdown(display_metric_card("Primary Trait", predicted_label, "#17becf"), unsafe_allow_html=True)
+        st.markdown(f"""
+        <div class="trait-analysis-card">
+            <h3>⚡ Growth Areas</h3>
+            <p>{type_info['weaknesses']}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        st.markdown(f"""
+        <div class="trait-analysis-card">
+            <h3>💼 Career Matches</h3>
+            <p>{type_info['careers']}</p>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Advanced metrics
+    col1, col2, col3 = st.columns(3)
+    
+    with col1:
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>Type Confidence</h3>
+            <h2 style="color: #1f77b4 !important;">{confidence:.1%}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    with col2:
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>Personality Type</h3>
+            <h2 style="color: #17becf !important;">{personality_type}</h2>
+        </div>
+        """, unsafe_allow_html=True)
     
     with col3:
-        second_idx = np.argsort(probabilities)[-2]
-        second_label = labels[second_idx]
-        second_prob = probabilities[second_idx]
-        st.markdown(display_metric_card("Secondary Trait", f"{second_label}<br/><small>{second_prob:.1%}</small>", "#ff7f0e"), unsafe_allow_html=True)
-
-def get_interpretation(max_prob: float) -> str:
-    """Generate interpretation"""
-    if max_prob > 0.7:
-        return ("🎯 Strong Profile Match: Your personality type is very clear and well-defined. "
-                "Your responses reveal consistent behaviors and preferences, indicating a strong alignment "
-                "with this trait. Embrace these strengths as they shape your natural way of engaging with the world.")
-    elif max_prob > 0.5:
-        return ("⚖️ Moderate Profile: You exhibit a balance between different personality traits. "
-                "This suggests flexibility and adaptability, enabling you to navigate a variety of situations "
-                "effectively. Your personality may shift subtly depending on context, showing both strengths and areas of growth.")
-    else:
-        return ("🌈 Balanced Profile: Your personality displays a rich blend of diverse traits. "
-                "This versatility allows you to relate to many kinds of people and situations. "
-                "Such balance can be a significant asset in dynamic environments requiring varied approaches.")
+        variant_name = "Assertive" if variant == "A" else "Turbulent"
+        st.markdown(f"""
+        <div class="metric-card">
+            <h3>Variant</h3>
+            <h2 style="color: #ff7f0e !important;">{variant_name}</h2>
+        </div>
+        """, unsafe_allow_html=True)
+    
+    # Improved: Advanced trait breakdown with matching lengths
+    st.markdown("""
+    <h3 class="results-section-header">🔬 Advanced Trait Analysis</h3>
+    """, unsafe_allow_html=True)
+    
+    # Ensure all arrays have the same length
+    trait_names = ['Leadership', 'Creativity', 'Empathy', 'Risk Tolerance', 'Perfectionism', 
+                   'Social Harmony', 'Intrinsic Motivation', 'Change Adaptation', 'Communication', 'Learning Style', 'Competitiveness']
+    
+    trait_scores = [
+        traits.get('leadership', 5.0),
+        traits.get('creativity', 5.0), 
+        traits.get('empathy', 5.0),
+        traits.get('risk_tolerance', 5.0),
+        traits.get('perfectionism', 5.0),
+        traits.get('social_harmony', 5.0),
+        traits.get('intrinsic_motivation', 5.0),
+        traits.get('change_adaptation', 5.0),
+        traits.get('communication_directness', 5.0),
+        traits.get('hands_on_learning', 5.0),
+        traits.get('competitiveness', 5.0)
+    ]
+    
+    trait_strengths = []
+    for score in trait_scores:
+        if score >= 7:
+            trait_strengths.append('High')
+        elif score >= 4:
+            trait_strengths.append('Moderate') 
+        else:
+            trait_strengths.append('Low')
+    
+    # Verify lengths match before creating DataFrame
+    assert len(trait_names) == len(trait_scores) == len(trait_strengths), f"Length mismatch: names={len(trait_names)}, scores={len(trait_scores)}, strengths={len(trait_strengths)}"
+    
+    trait_df = pd.DataFrame({
+        'Trait': trait_names,
+        'Score': [f"{score:.1f}/10" for score in trait_scores],
+        'Strength': trait_strengths
+    })
+    
+    st.dataframe(trait_df, width='stretch')
 
 def main():
-    """Main application"""
+    """Improved: Enhanced main application with proper adaptive question system"""
     initialize_session_state()
     
     # Header
     st.markdown("""
     <div style="text-align: center; margin-bottom: 2rem;">
-        <h1 class="main-title">🎯 AI-Powered Personality Assessment</h1>
-        <h3 class="main-subtitle">Team Retreat Edition</h3>
+        <h1 class="main-title">🪞 Advanced Personality Mirror</h1>
+        <h3 class="main-subtitle">Next-Generation Adaptive Assessment</h3>
     </div>
     """, unsafe_allow_html=True)
     
     if not st.session_state.assessment_started:
-        # Scenario
-        st.markdown("""
+        # Display selected scenario - Updated: Remove HTML tags
+        scenario = st.session_state.selected_scenario
+        
+        st.markdown(f"""
         <div class="scenario-box">
-            <h2>🏔️ Mountain Retreat Adventure</h2>
-            <p>You've been invited to an exciting weekend team retreat at a mountain resort! 
-            You'll spend three days with 20 colleagues mixing outdoor adventures (hiking, rock climbing, team challenges), creative workshops, and social events around a campfire.
-            You'll stay in shared cabins with a mix of familiar faces and new colleagues - from outgoing social butterflies to quieter team members. 
-            The weekend includes everything from adrenaline-pumping activities to collaborative problem-solving and relaxed social time.
-            Imagine yourself in this scenario and answer honestly based on how you'd naturally behave. 
-            There are no right or wrong answers - just be genuine about your preferences and reactions!</p>
+            <h2>🌟 {scenario['name']}</h2>
+            <p>{scenario['description']}</p>
         </div>
         """, unsafe_allow_html=True)
         
-        # Features
+        # Instructions without HTML
+        st.markdown("""
+        **Imagine yourself fully immersed in this experience. Your responses will reveal deep insights about your authentic personality patterns, motivations, and natural behavioral tendencies. Answer based on how you would genuinely think, feel, and act in these situations.**
+        """)
+        
+        # Enhanced features
         col1, col2, col3 = st.columns(3)
         with col1:
             st.markdown("""
             <div class="feature-box">
-                <h4>⏱️ Duration</h4>
-                <p>10-15 minutes</p>
+                <h4>🧠 Smart Adaptation</h4>
+                <p>18 targeted questions</p>
             </div>
             """, unsafe_allow_html=True)
         with col2:
             st.markdown("""
             <div class="feature-box">
-                <h4>🧠 AI Analysis</h4>
-                <p>Neural network insights</p>
+                <h4>🎯 16 Personality Types</h4>
+                <p>MBTI-based comprehensive analysis</p>
             </div>
             """, unsafe_allow_html=True)
         with col3:
             st.markdown("""
             <div class="feature-box">
-                <h4>🪞 Talk to your mirror</h4>
-                <p>Ask anything—get real insight</p>
+                <h4>🪞 Intelligent Mirror</h4>
+                <p>AI that embodies your type</p>
             </div>
             """, unsafe_allow_html=True)
         
         st.markdown("---")
         
-        if st.button("🚀 Start Assessment", key="start_btn"):
+        if st.button("🚀 Begin Adaptive Assessment", key="start_btn"):
             st.session_state.assessment_started = True
             st.rerun()
     
     elif not st.session_state.results_ready:
-        # Questions
-        create_progress_bar(st.session_state.current_question, len(SCENARIO_QUESTIONS))
+        # Improved: Proper adaptive questions system that asks 18
+        questions
+        adaptive_system = st.session_state.adaptive_system
         
-        current_q = SCENARIO_QUESTIONS[st.session_state.current_question]
-        question_id, question_text = current_q
+        # Get the next question to ask
+        next_question = adaptive_system.get_next_question(st.session_state.questions_asked, st.session_state.answers)
         
-        st.markdown(f"""
-        <div class="question-box">
-            <h3>Question {st.session_state.current_question + 1}</h3>
-            <p>{question_text}</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # FIXED: Get current answer for this specific question
-        current_answer = st.session_state.answers.get(question_id, 5)
-        
-        # FIXED: Use unique key for each question to prevent slider confusion
-        answer = st.slider(
-            "Your Response",
-            min_value=1,
-            max_value=10,
-            value=current_answer,
-            key=f"slider_q{st.session_state.current_question}_{question_id}",  # Unique key per question
-            help="1 = Strongly Disagree | 5 = Neutral | 10 = Strongly Agree"
-        )
-        
-        # Store the answer for this question
-        st.session_state.answers[question_id] = answer
-        
-        labels = ["Strongly Disagree", "Disagree", "Somewhat Disagree", "Slightly Disagree", 
-                 "Neutral", "Slightly Agree", "Somewhat Agree", "Agree", "Strongly Agree", "Completely Agree"]
-        
-        st.markdown(f"""
-        <div class="selection-info">
-            <p><strong>Your selection:</strong> {answer}/10 - {labels[answer-1]}</p>
-        </div>
-        """, unsafe_allow_html=True)
-        
-        # Navigation
-        col1, col2, col3 = st.columns([1, 2, 1])
-        
-        with col1:
-            if st.session_state.current_question > 0:
-                if st.button("⬅️ Previous", key="prev_btn"):
-                    st.session_state.current_question -= 1
-                    st.rerun()
-        
-        with col3:
-            if st.session_state.current_question < len(SCENARIO_QUESTIONS) - 1:
+        # Check if we should continue or finish
+        if next_question is None or not adaptive_system.should_continue_asking(st.session_state.questions_asked):
+            # Analysis complete - we've asked enough questions
+            with st.spinner("🧠 Performing advanced personality analysis..."):
+                analysis = analyze_personality_advanced(st.session_state.answers)
+                st.session_state.personality_analysis = analysis
+                st.session_state.results_ready = True
+                st.rerun()
+        else:
+            # Show progress - Fixed: Proper progress calculation
+            target_questions = adaptive_system.target_question_count
+            current_questions = len(st.session_state.questions_asked)
+            
+            create_progress_bar(current_questions, target_questions)
+            
+            # Display current question - Updated: No repetitive context
+            st.markdown(f"""
+            <div class="question-box">
+                <h3>Question {current_questions + 1}</h3>
+                <p>{next_question['text']}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            current_answer = st.session_state.answers.get(next_question['id'], 5)
+            
+            answer = st.slider(
+                "Your Response",
+                min_value=1,
+                max_value=10,
+                value=current_answer,
+                key=f"adaptive_slider_{next_question['id']}_{current_questions}",  
+                help="1 = Strongly Disagree | 5 = Neutral | 10 = Strongly Agree"
+            )
+            
+            # Store the answer
+            st.session_state.answers[next_question['id']] = answer
+            
+            labels = ["Strongly Disagree", "Disagree", "Somewhat Disagree", "Slightly Disagree", 
+                     "Neutral", "Slightly Agree", "Somewhat Agree", "Agree", "Strongly Agree", "Completely Agree"]
+            
+            st.markdown(f"""
+            <div class="selection-info">
+                <p><strong>Your response:</strong> {answer}/10 - {labels[answer-1]}</p>
+            </div>
+            """, unsafe_allow_html=True)
+            
+            # Navigation
+            col1, col2, col3 = st.columns([1, 2, 1])
+            
+            with col1:
+                if len(st.session_state.questions_asked) > 0:
+                    if st.button("⬅️ Previous", key="prev_btn"):
+                        # Remove last question from asked list and answers
+                        if st.session_state.questions_asked:
+                            last_question = st.session_state.questions_asked.pop()
+                            # Don't remove from answers so they can see their previous response
+                        st.rerun()
+            
+            with col3:
                 if st.button("Next ➡️", key="next_btn"):
-                    st.session_state.current_question += 1
+                    # Mark question as asked and move to next
+                    if next_question['id'] not in st.session_state.questions_asked:
+                        st.session_state.questions_asked.append(next_question['id'])
                     st.rerun()
-            else:
-                if st.button("✅ Complete Assessment", key="submit_btn"):
-                    with st.spinner("🧠 Analyzing your responses..."):
-                        calculate_and_display_results()
     
     else:
-        display_final_results()
+        # Display enhanced results
+        analysis = st.session_state.personality_analysis
+        scenario = st.session_state.selected_scenario
+        create_advanced_results_visualization(analysis, scenario)
+        
+        # Enhanced interpretation
+        confidence = analysis['confidence']
+        variant = analysis['variant']
+        type_info = PERSONALITY_TYPES[analysis['type']]
+        
+        if confidence >= 0.4:
+            interpretation = f"🎯 Strong {analysis['type']} Profile: Your personality type is clearly defined with high confidence. You consistently demonstrate the core traits of {type_info['name']}, showing authentic alignment with this type's natural patterns of thinking, feeling, and behaving."
+        elif confidence >= 0.2:
+            interpretation = f"⚖️ Moderate {analysis['type']} Profile: You show clear tendencies toward {type_info['name']} traits while maintaining flexibility across different situations. This suggests adaptability and situational awareness in how you express your personality."
+        else:
+            interpretation = f"🌈 Balanced {analysis['type']} Profile: You demonstrate a nuanced blend of personality traits centered around the {type_info['name']} type. This versatility allows you to adapt your approach based on context and circumstances."
+        
+        if variant == "A":
+            interpretation += " Your Assertive variant suggests confidence in your abilities and decisions, with natural resilience to stress."
+        else:
+            interpretation += " Your Turbulent variant indicates thoughtful self-reflection and a drive for continuous improvement."
+        
+        st.markdown(f"""
+        <div class="interpretation-box">
+            <h3>💡 Advanced Interpretation</h3>
+            <p>{interpretation}</p>
+        </div>
+        """, unsafe_allow_html=True)
+        
+        # Download enhanced results
+        col1, col2 = st.columns(2)
+        with col1:
+            if st.button("🔄 Retake Assessment", key="retake_btn"):
+                # Reset everything for new assessment
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.rerun()
+        
+        with col2:
+            results_text = f"""Advanced Adaptive Personality Assessment Results
+=============================================
 
-def calculate_and_display_results():
-    """Calculate results"""
-    try:
-        model, scaler, label_encoder, device = load_and_train_model()
-        
-        user_answers = []
-        for feature, _ in SCENARIO_QUESTIONS:
-            user_answers.append(st.session_state.answers.get(feature, 5))
-        
-        if len(user_answers) != scaler.n_features_in_:
-            user_answers = user_answers[:scaler.n_features_in_]
-            while len(user_answers) < scaler.n_features_in_:
-                user_answers.append(5)
-        
-        user_data = np.array(user_answers).reshape(1, -1)
-        user_scaled = scaler.transform(user_data)
-        user_tensor = torch.tensor(user_scaled, dtype=torch.float32).to(device)
-        
-        model.eval()
-        with torch.no_grad():
-            logits = model(user_tensor)
-            probabilities = torch.softmax(logits, dim=1).cpu().numpy()[0]
-            predicted_index = np.argmax(probabilities)
-            predicted_label = label_encoder.inverse_transform([predicted_index])[0]
-        
-        st.session_state.prediction_results = {
-            'predicted_label': predicted_label,
-            'probabilities': probabilities,
-            'labels': label_encoder.classes_
-        }
-        st.session_state.results_ready = True
-        st.rerun()
-        
-    except Exception as e:
-        st.error(f"Error processing results: {str(e)}")
-        if st.button("🔄 Try Again"):
-            st.session_state.results_ready = False
-            st.rerun()
+Personality Type: {analysis['full_type']} - {type_info['name']}
+Scenario: {scenario['name']}
+Confidence Level: {confidence:.1%}
+Questions Asked: {len(st.session_state.questions_asked)} adaptive questions
 
-def display_final_results():
-    """Display final results"""
-    results = st.session_state.prediction_results
-    
-    create_results_visualization(
-        results['probabilities'],
-        results['labels'],
-        results['predicted_label']
-    )
-    
-    max_prob = np.max(results['probabilities'])
-    interpretation = get_interpretation(max_prob)
-    
-    st.markdown(f"""
-    <div class="interpretation-box">
-        <h3>💡 Interpretation</h3>
-        <p>{interpretation}</p>
-    </div>
-    """, unsafe_allow_html=True)
-    
-    # Detailed breakdown
-    st.markdown("""
-    <h3 class="results-section-header">📊 Detailed Breakdown</h3>
-    """, unsafe_allow_html=True)
-    
-    breakdown_df = pd.DataFrame({
-        'Personality Type': results['labels'],
-        'Confidence': [f"{prob:.1%}" for prob in results['probabilities']],
-        'Score': results['probabilities']
-    }).sort_values('Score', ascending=False)
-    
-    # FIXED: Updated to use width='stretch' instead of use_container_width=True
-    st.dataframe(breakdown_df[['Personality Type', 'Confidence']], width='stretch')
-    
-    # Buttons
-    col1, col2 = st.columns(2)
-    with col1:
-        if st.button("🔄 Retake Assessment", key="retake_btn"):
-            for key in list(st.session_state.keys()):
-                del st.session_state[key]
-            st.rerun()
-    
-    with col2:
-        results_text = f"""Personality Assessment Results
-=============================
-Primary Type: {results['predicted_label']}
-Confidence: {max_prob:.1%}
+CORE DESCRIPTION:
+{type_info['description']}
 
-Detailed Breakdown:
-{chr(10).join([f"{label}: {prob:.1%}" for label, prob in zip(results['labels'], results['probabilities'])])}
+STRENGTHS:
+{type_info['strengths']}
 
-Interpretation: {interpretation}
-        """
-        st.download_button(
-            label="📄 Download Results",
-            data=results_text,
-            file_name="personality_results.txt",
-            mime="text/plain"
-        )
+GROWTH AREAS:
+{type_info['weaknesses']}
+
+CAREER MATCHES:
+{type_info['careers']}
+
+MBTI DIMENSION SCORES:
+Extraversion/Introversion: {analysis['mbti_scores']['E/I']:.1f}/10
+Sensing/Intuition: {analysis['mbti_scores']['S/N']:.1f}/10  
+Thinking/Feeling: {analysis['mbti_scores']['T/F']:.1f}/10
+Judging/Perceiving: {analysis['mbti_scores']['J/P']:.1f}/10
+
+ADVANCED TRAIT ANALYSIS:
+Leadership: {analysis['traits']['leadership']:.1f}/10
+Creativity: {analysis['traits']['creativity']:.1f}/10
+Empathy: {analysis['traits']['empathy']:.1f}/10
+Risk Tolerance: {analysis['traits']['risk_tolerance']:.1f}/10
+Perfectionism: {analysis['traits']['perfectionism']:.1f}/10
+Social Harmony: {analysis['traits']['social_harmony']:.1f}/10
+
+INTERPRETATION:
+{interpretation}
+            """
+            st.download_button(
+                label="📄 Download Complete Analysis",
+                data=results_text,
+                file_name=f"adaptive_personality_analysis_{analysis['full_type']}.txt",
+                mime="text/plain"
+            )
+
+footer = """
+<style>
+.custom-footer {
+  position: fixed;
+  left: 0; bottom: 0; width: 100%;
+  padding: 8px 12px;
+  text-align: center;
+  font-weight: 800; font-size: 12px;
+  z-index: 9999;
+  background: linear-gradient(90deg,#1a1a1a, #2a2a2a);
+  color: #17becf;
+  border-top: 2px solid #1f77b4;
+  box-shadow: 0 -2px 10px rgba(23,190,207,0.15);
+}
+</style>
+<div class="custom-footer">Made by Aariv</div>
+"""
+st.markdown(footer, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
-
