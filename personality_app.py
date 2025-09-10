@@ -1221,7 +1221,6 @@ def create_dual_results_visualization(neural_analysis, mbti_analysis, scenario):
             <p><strong>Primary Classification:</strong> {neural_analysis['predicted_label']}</p>
             <p><strong>Confidence Level:</strong> {neural_analysis['confidence']:.1%}</p>
             <p><strong>Analysis Method:</strong> Deep learning on 29 behavioral features</p>
-            <p><strong>Top Alternatives:</strong> {', '.join([f"{label} ({prob:.1%})" for label, prob in zip(neural_analysis['labels'], neural_analysis['probabilities']) if prob > 0.1 and label != neural_analysis['predicted_label']][:2])}</p>
         </div>
         """, unsafe_allow_html=True)
     
@@ -1467,3 +1466,4 @@ st.markdown(footer, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
+
