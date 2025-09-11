@@ -1298,7 +1298,6 @@ def main():
     st.markdown(f"""
     <div class="legal-disclaimer">
         {LEGAL_DISCLAIMER}
-    </div>
     """, unsafe_allow_html=True)
     
     if not st.session_state.assessment_started:
@@ -1520,3 +1519,4 @@ st.markdown(footer, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
+
