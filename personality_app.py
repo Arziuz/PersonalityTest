@@ -36,134 +36,142 @@ except KeyError:
     st.error("🔑 API key not found! Please add OPENROUTER_API_KEY to your Streamlit secrets.")
     st.stop()
 
-# 16 Personality Types with detailed descriptions
+# Legal disclaimer for MBTI compliance
+LEGAL_DISCLAIMER = """
+**Legal Notice:** This assessment is independently developed for educational and insight purposes. 
+It is not affiliated with, endorsed by, or a substitute for the Myers-Briggs Type Indicator (MBTI)®. 
+MBTI® and Myers-Briggs Type Indicator® are trademarks of The Myers-Briggs Company. 
+This tool uses an independently developed framework and original questions.
+"""
+
+# 16 Personality Types with detailed descriptions (original content)
 PERSONALITY_TYPES = {
     "INTJ": {
         "name": "The Architect", 
-        "description": "Imaginative and strategic thinkers, with a plan for everything.",
+        "description": "Strategic and systematic thinkers who prefer working independently toward long-term goals.",
         "traits": "Independent, decisive, hard-working, and determined",
         "strengths": "Strategic thinking, independence, determination, hard-working, open-minded",
-        "weaknesses": "Arrogant, judgmental, overly critical, combative, romantically clueless",
+        "weaknesses": "Can be overly critical, judgmental, or dismissive of emotions",
         "careers": "Scientist, Engineer, Professor, Lawyer, Systems Analyst, Military Officer"
     },
     "INTP": {
         "name": "The Thinker", 
-        "description": "Innovative inventors with an unquenchable thirst for knowledge.",
+        "description": "Innovative analysts with an unquenchable thirst for understanding complex systems.",
         "traits": "Logical, original, creative, and intellectually curious",
         "strengths": "Analytical, original thinking, open-minded, curious, objective",
-        "weaknesses": "Disconnected, insensitive, dissatisfied, impatient, perfectionist",
+        "weaknesses": "May struggle with practical implementation and social dynamics",
         "careers": "Philosopher, Architect, Mathematician, Scientist, Systems Analyst"
     },
     "ENTJ": {
         "name": "The Commander", 
-        "description": "Bold, imaginative and strong-willed leaders, always finding a way.",
+        "description": "Natural-born leaders who thrive on organizing people and resources toward shared objectives.",
         "traits": "Confident, strategic, decisive, and ambitious",
         "strengths": "Efficient, energetic, self-confident, strong-willed, strategic thinking",
-        "weaknesses": "Stubborn, impatient, arrogant, cold, ruthless",
+        "weaknesses": "Can be impatient, stubborn, or overly demanding",
         "careers": "CEO, Entrepreneur, Judge, Lawyer, Business Administrator"
     },
     "ENTP": {
         "name": "The Debater", 
-        "description": "Smart and curious thinkers who cannot resist an intellectual challenge.",
+        "description": "Quick-thinking innovators who enjoy exploring new ideas and challenging conventional wisdom.",
         "traits": "Inventive, enthusiastic, strategic, and enterprising",
         "strengths": "Knowledgeable, quick thinking, original, excellent brainstorming, charismatic",
-        "weaknesses": "Argumentative, insensitive, intolerant, finds it difficult to focus",
+        "weaknesses": "May struggle with follow-through and routine tasks",
         "careers": "Inventor, Lawyer, Psychologist, Systems Analyst, Entrepreneur"
     },
     "INFJ": {
         "name": "The Advocate", 
-        "description": "Quiet and mystical, yet very inspiring and tireless idealists.",
+        "description": "Insightful idealists who work toward meaningful change with quiet determination.",
         "traits": "Creative, insightful, principled, and passionate",
         "strengths": "Creative, insightful, inspiring, convincing, decisive, determined",
-        "weaknesses": "Sensitive, extremely private, perfectionist, burnout-prone",
+        "weaknesses": "Can be overly sensitive to criticism and prone to burnout",
         "careers": "Counselor, Writer, Scientist, Librarian, Psychologist, Social Worker"
     },
     "INFP": {
         "name": "The Mediator", 
-        "description": "Poetic, kind and altruistic people, always eager to help a good cause.",
+        "description": "Compassionate individualists who seek harmony and authentic self-expression.",
         "traits": "Loyal, sensitive, kind, and creative",
         "strengths": "Empathetic, generous, open-minded, creative, passionate, idealistic",
-        "weaknesses": "Unrealistic, self-isolating, unfocused, emotionally vulnerable",
+        "weaknesses": "Can be unrealistic, self-isolating, or overly emotional",
         "careers": "Writer, Social Worker, Counselor, Psychologist, Artist, Teacher"
     },
     "ENFJ": {
         "name": "The Protagonist", 
-        "description": "Charismatic and inspiring leaders, able to mesmerize their listeners.",
+        "description": "Inspiring mentors who help others realize their potential through encouragement and guidance.",
         "traits": "Charismatic, altruistic, natural-born leader, and reliable",
         "strengths": "Tolerant, reliable, charismatic, altruistic, natural leader",
-        "weaknesses": "Overly idealistic, too selfless, too sensitive, fluctuating self-esteem",
+        "weaknesses": "May be overly idealistic or struggle with self-care",
         "careers": "Teacher, Social Worker, Counselor, Politician, Writer, Consultant"
     },
     "ENFP": {
         "name": "The Campaigner", 
-        "description": "Enthusiastic, creative and sociable free spirits, who can always find a reason to smile.",
+        "description": "Enthusiastic visionaries who see life as full of possibilities and meaningful connections.",
         "traits": "Enthusiastic, creative, sociable, and free-spirited",
         "strengths": "Curious, observant, energetic, excellent communication skills, popular",
-        "weaknesses": "Poor practical skills, finds it difficult to focus, overthinking, stressed easily",
+        "weaknesses": "Can have poor practical skills and difficulty focusing",
         "careers": "Psychologist, Journalist, Actor, Teacher, Counselor, Social Worker"
     },
     "ISTJ": {
         "name": "The Logistician", 
-        "description": "Practical and fact-minded, whose reliability cannot be doubted.",
+        "description": "Practical traditionalists who value reliability, hard work, and systematic approaches.",
         "traits": "Responsible, sincere, analytical, reserved, realistic, systematic",
         "strengths": "Honest, direct, strong-willed, dutiful, very responsible, calm",
-        "weaknesses": "Stubborn, insensitive, judgmental, unreasonably blame themselves",
+        "weaknesses": "Can be inflexible or overly critical of unconventional approaches",
         "careers": "Accountant, Engineer, Judge, Lawyer, Medical Doctor, Dentist"
     },
     "ISFJ": {
         "name": "The Protector", 
-        "description": "Very dedicated and warm protectors, always ready to defend their loved ones.",
+        "description": "Warm-hearted guardians who are always ready to protect and care for the people they love.",
         "traits": "Warm-hearted, popular, conscientious, and born cooperator",
         "strengths": "Supportive, reliable, patient, imaginative, observant, loyal",
-        "weaknesses": "Humble, shy, repress feelings, overload themselves, reluctant to change",
+        "weaknesses": "Can be overly humble or reluctant to change",
         "careers": "Teacher, Social Worker, Counselor, Child Care, Nurse, Doctor"
     },
     "ESTJ": {
         "name": "The Executive", 
-        "description": "Excellent administrators, unsurpassed at managing things or people.",
+        "description": "Efficient organizers who excel at managing people and projects through clear systems.",
         "traits": "Organized, group-oriented, focused, conventional, leader",
         "strengths": "Dedicated, strong-willed, direct, honest, loyal, patient, reliable",
-        "weaknesses": "Inflexible, uncomfortable with unconventional situations, judgmental",
+        "weaknesses": "Can be inflexible or uncomfortable with unconventional situations",
         "careers": "Judge, Lawyer, Teacher, Business Administrator, Manager, Police Officer"
     },
     "ESFJ": {
         "name": "The Consul", 
-        "description": "Extraordinarily caring, social and popular people, always eager to help.",
+        "description": "Social harmonizers who create warm, cooperative environments for everyone to thrive.",
         "traits": "Cooperative, friendly, organized, practical, reliable",
         "strengths": "Strong practical skills, dutiful, loyal, sensitive, warm-hearted",
-        "weaknesses": "Worried about social status, inflexible, reluctant to innovate",
+        "weaknesses": "May worry about social status or resist innovation",
         "careers": "Teacher, Social Worker, Nurse, Counselor, Child Care Provider"
     },
     "ISTP": {
         "name": "The Virtuoso", 
-        "description": "Bold and practical experimenters, masters of all kinds of tools.",
+        "description": "Practical troubleshooters who excel at understanding how things work through hands-on exploration.",
         "traits": "Tolerant, flexible, quiet, reserved, practical, realistic",
         "strengths": "Optimistic, energetic, creative, practical, spontaneous, rational",
-        "weaknesses": "Stubborn, insensitive, private, easily bored, risky behavior",
+        "weaknesses": "Can be stubborn, insensitive, or easily bored",
         "careers": "Engineer, Mechanic, Computer Programmer, Forensic Scientist, Pilot"
     },
     "ISFP": {
         "name": "The Adventurer", 
-        "description": "Flexible and charming artists, always ready to explore new possibilities.",
+        "description": "Gentle artists who explore life through personal experience and creative self-expression.",
         "traits": "Friendly, sensitive, kind, creative, perceptive",
         "strengths": "Charming, sensitive to others, imaginative, passionate, curious",
-        "weaknesses": "Fiercely independence, unpredictable, easily stressed, overly competitive",
+        "weaknesses": "Can be fiercely independent, unpredictable, or overly competitive",
         "careers": "Artist, Musician, Designer, Writer, Counselor, Social Worker"
     },
     "ESTP": {
         "name": "The Entrepreneur", 
-        "description": "Smart, energetic and very perceptive people, who truly enjoy living on the edge.",
+        "description": "Energetic problem-solvers who thrive in dynamic environments and enjoy life to the fullest.",
         "traits": "Spontaneous, energetic, pragmatic, enthusiastic, friendly",
         "strengths": "Bold, rational, practical, original, perceptive, direct",
-        "weaknesses": "Insensitive, impatient, risk-prone, unstructured, defiant",
+        "weaknesses": "Can be impatient, risk-prone, or struggle with long-term planning",
         "careers": "Sales Representative, Marketing Specialist, Police Officer, Paramedic"
     },
     "ESFP": {
         "name": "The Entertainer", 
-        "description": "Spontaneous, energetic and enthusiastic people – life is never boring around them.",
+        "description": "Spontaneous performers who bring joy and enthusiasm to every situation they encounter.",
         "traits": "Outgoing, friendly, spontaneous, enthusiastic, fun-loving",
         "strengths": "Bold, original, aesthetic, showmanship, practical, observant",
-        "weaknesses": "Sensitive, conflict-averse, poor long-term planning, unfocused",
+        "weaknesses": "Can be sensitive to conflict or struggle with long-term planning",
         "careers": "Actor, Artist, Counselor, Social Worker, Psychologist, Teacher"
     }
 }
@@ -217,16 +225,6 @@ FEATURE_MAPPING = {
     "spontaneous_energy": [14, 19, 16, 25],       # risk_taking, excitement_seeking, spontaneity, decision_speed
     "logical_analysis": [3, 9, 15, 27],           # deep_reflection, organization, routine_preference, gadget_usage
     "value_driven": [7, 8, 13, 17],               # empathy, listening_skill, creativity, curiosity
-    "routine_preference": [9, 15, 18, 22],        # organization, routine_preference, planning, sports_interest
-    "innovation_drive": [8, 13, 17, 19],          # creativity, curiosity, excitement_seeking, adventurousness
-    "hands_on_learning": [22, 23, 26, 27],        # sports_interest, travel_desire, stress_handling, gadget_usage
-    "perfectionism": [3, 9, 15, 18],              # deep_reflection, organization, routine_preference, planning
-    "adaptability": [14, 16, 19, 25],             # risk_taking, spontaneity, excitement_seeking, decision_speed
-    "tradition_respect": [9, 15, 18, 22],         # organization, routine_preference, planning, sports_interest
-    "competitive_drive": [10, 12, 19, 22],        # leadership, public_speaking_comfort, excitement_seeking, sports_interest
-    "empathy_connection": [7, 8, 26, 28],         # empathy, listening_skill, stress_handling, work_style_collaborative
-    "big_picture_thinking": [13, 17, 18, 23],     # creativity, curiosity, planning, travel_desire
-    "aesthetic_appreciation": [8, 13, 20, 21]     # creativity, reading_habit, online_social_usage, travel_desire
 }
 
 # Original 29 features list for reference
@@ -381,6 +379,13 @@ COMPREHENSIVE_QUESTIONS = [
         "discriminates": ["INTJ", "INTP", "ESTJ", "ISTJ"],
         "priority": 4,
         "weight": 0.6
+    },
+    {
+        "id": "value_driven",
+        "text": "My decisions are strongly influenced by my personal values and what I believe is right, even when it's not the most logical choice.",
+        "discriminates": ["INFP", "ISFP", "ENFP", "ESFP"],
+        "priority": 4,
+        "weight": 0.5
     }
 ]
 
@@ -567,7 +572,7 @@ def analyze_mbti_system(answers):
         'change_adaptation': answers.get('future_focus', 5.0),
         'communication_directness': answers.get('logical_analysis', 5.0),
         'hands_on_learning': answers.get('practical_focus', 5.0),
-        'competitiveness': 5.0  # Default for traits not directly mapped
+        'competitiveness': answers.get('value_driven', 5.0)
     }
     
     return {
@@ -609,7 +614,7 @@ Remember: You're not an AI describing this person - you ARE this {type_info['nam
     # Fallback for neural network types
     return f"""You are embodying someone with the {analysis.get('predicted_label', 'Balanced')} personality type. Speak as "I" and share insights from this personality perspective."""
 
-# Enhanced CSS (same as before)
+# Enhanced CSS with proper formatting (FIXED: No HTML entities)
 st.markdown("""
 <style>
     .main {
@@ -896,6 +901,16 @@ st.markdown("""
         text-align: center;
     }
     
+    .legal-disclaimer {
+        background: #2c2c2c !important;
+        padding: 1rem;
+        border-radius: 10px;
+        border-left: 4px solid #ffc107;
+        margin: 1rem 0;
+        font-size: 0.9em;
+        color: #ffffff !important;
+    }
+    
     .stProgress > div > div > div {
         background: #1f77b4 !important;
     }
@@ -914,6 +929,16 @@ st.markdown("""
         border: none !important;
         border-radius: 10px !important;
         font-weight: 600 !important;
+    }
+    
+    .stDataFrame {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
+    }
+    
+    .stDataFrame table {
+        background-color: #1a1a1a !important;
+        color: #ffffff !important;
     }
 </style>
 """, unsafe_allow_html=True)
@@ -1012,7 +1037,7 @@ def create_dual_chatbot_interface():
         )
     
     with col2:
-        send_button = st.button("Ask", key="send_chat", width='stretch')
+        send_button = st.button("Ask", key="send_chat")
     
     # Process chat input
     if send_button and user_input.strip():
@@ -1060,7 +1085,8 @@ def initialize_session_state():
         st.session_state.questions_asked = []
 
 def create_progress_bar(current: int, total: int) -> None:
-    """Create enhanced progress bar that never exceeds 1.0"""
+    """FIXED: Create enhanced progress bar that never exceeds 1.0"""
+    # CRITICAL FIX: Ensure progress never exceeds 1.0
     progress = min(current / total, 1.0) if total > 0 else 0.0
     
     st.markdown(f"""
@@ -1113,7 +1139,7 @@ def create_elegant_radar_chart(analysis):
         ),
         showlegend=False,
         title=dict(
-            text=f"MBTI Analysis: {analysis['type']}",
+            text=f"16-Type Analysis: {analysis['type']}",
             font=dict(size=20, color='white', family='Arial Black'),
             x=0.5,
             y=0.95
@@ -1185,14 +1211,14 @@ def create_dual_results_visualization(neural_analysis, mbti_analysis, scenario):
         
         # Neural network probability chart
         fig_neural = create_neural_probability_chart(neural_analysis)
-        st.plotly_chart(fig_neural, width='stretch')
+        st.plotly_chart(fig_neural, use_container_width=True)
     
     with col2:
         type_info = PERSONALITY_TYPES.get(mbti_analysis['type'], PERSONALITY_TYPES['INFP'])
         
         st.markdown(f"""
         <div class="mbti-analysis-card">
-            <h1>🎯 MBTI System</h1>
+            <h1>🎯 16-Type System</h1>
             <h2>{mbti_analysis['full_type']} - {type_info['name']}</h2>
             <p>{type_info['description']}</p>
         </div>
@@ -1200,7 +1226,7 @@ def create_dual_results_visualization(neural_analysis, mbti_analysis, scenario):
         
         # MBTI radar chart
         fig_mbti = create_elegant_radar_chart(mbti_analysis)
-        st.plotly_chart(fig_mbti, width='stretch')
+        st.plotly_chart(fig_mbti, use_container_width=True)
     
     # Dual chatbot interface
     create_dual_chatbot_interface()
@@ -1215,19 +1241,23 @@ def create_dual_results_visualization(neural_analysis, mbti_analysis, scenario):
     col1, col2 = st.columns(2)
     
     with col1:
+        top_alternatives = [f"{label} ({prob:.1%})" for label, prob in zip(neural_analysis['labels'], neural_analysis['probabilities']) if prob > 0.1 and label != neural_analysis['predicted_label']][:2]
+        alternatives_text = ', '.join(top_alternatives) if top_alternatives else "None above 10%"
+        
         st.markdown(f"""
         <div class="analysis-section">
             <h3>🧠 Neural Network Insights</h3>
             <p><strong>Primary Classification:</strong> {neural_analysis['predicted_label']}</p>
             <p><strong>Confidence Level:</strong> {neural_analysis['confidence']:.1%}</p>
             <p><strong>Analysis Method:</strong> Deep learning on 29 behavioral features</p>
+            <p><strong>Top Alternatives:</strong> {alternatives_text}</p>
         </div>
         """, unsafe_allow_html=True)
     
     with col2:
         st.markdown(f"""
         <div class="analysis-section">
-            <h3>🎯 MBTI System Insights</h3>
+            <h3>🎯 16-Type System Insights</h3>
             <p><strong>Primary Type:</strong> {mbti_analysis['full_type']} - {type_info['name']}</p>
             <p><strong>Core Strengths:</strong> {type_info['strengths'][:100]}...</p>
             <p><strong>Growth Areas:</strong> {type_info['weaknesses'][:100]}...</p>
@@ -1235,7 +1265,7 @@ def create_dual_results_visualization(neural_analysis, mbti_analysis, scenario):
         </div>
         """, unsafe_allow_html=True)
     
-    # Feature analysis comparison
+    # Feature analysis comparison - FIXED: Matching array lengths
     st.markdown("""
     <h2 style="color: white; font-size: 2em; margin: 2rem 0 1rem 0;">
         🔍 Key Insights Comparison
@@ -1243,14 +1273,14 @@ def create_dual_results_visualization(neural_analysis, mbti_analysis, scenario):
     """, unsafe_allow_html=True)
     
     comparison_df = pd.DataFrame({
-        'Analysis System': ['Neural Network', 'MBTI System'],
+        'Analysis System': ['Neural Network', '16-Type System'],
         'Primary Result': [neural_analysis['predicted_label'], f"{mbti_analysis['full_type']} - {type_info['name']}"],
         'Confidence': [f"{neural_analysis['confidence']:.1%}", f"{mbti_analysis['confidence']:.1%}"],
-        'Method': ['Deep learning on 29 features', '4-dimension MBTI scoring'],
+        'Method': ['Deep learning on 29 features', '4-dimension psychological scoring'],
         'Focus': ['Learned patterns from data', 'Psychological theory-based']
     })
     
-    st.dataframe(comparison_df, width='stretch')
+    st.dataframe(comparison_df, use_container_width=True)
 
 def main():
     """Enhanced main application with dual analysis system"""
@@ -1260,7 +1290,14 @@ def main():
     st.markdown("""
     <div style="text-align: center; margin-bottom: 2rem;">
         <h1 class="main-title">🔬 Dual Personality Analysis System</h1>
-        <h3 class="main-subtitle">Neural Network + MBTI Combined Analysis</h3>
+        <h3 class="main-subtitle">Neural Network + 16-Type Combined Analysis</h3>
+    </div>
+    """, unsafe_allow_html=True)
+    
+    # Legal disclaimer
+    st.markdown(f"""
+    <div class="legal-disclaimer">
+        {LEGAL_DISCLAIMER}
     </div>
     """, unsafe_allow_html=True)
     
@@ -1277,7 +1314,7 @@ def main():
         
         # Instructions
         st.markdown("""
-        **Get insights from TWO advanced systems: Your responses will be analyzed by both our custom neural network (trained on behavioral patterns) AND our MBTI system (based on psychological theory). You'll receive dual perspectives on your personality!**
+        **Get insights from TWO advanced systems: Your responses will be analyzed by both our custom neural network (trained on behavioral patterns) AND our 16-type system (based on psychological theory). You'll receive dual perspectives on your personality!**
         """)
         
         # Enhanced features
@@ -1292,8 +1329,8 @@ def main():
         with col2:
             st.markdown("""
             <div class="feature-box">
-                <h4>🎯 MBTI System</h4>
-                <p>16 personality types</p>
+                <h4>🎯 16-Type System</h4>
+                <p>Psychological framework</p>
             </div>
             """, unsafe_allow_html=True)
         with col3:
@@ -1320,26 +1357,31 @@ def main():
         # Check if analysis should complete
         if next_question is None or not adaptive_system.should_continue_asking(st.session_state.questions_asked):
             # Run both analyses
-            with st.spinner("🔬 Running dual personality analysis - Neural Network + MBTI..."):
-                # Load models
-                model, scaler, label_encoder, device = load_and_train_dual_models()
+            with st.spinner("🔬 Running dual personality analysis - Neural Network + 16-Type..."):
+                try:
+                    # Load models
+                    model, scaler, label_encoder, device = load_and_train_dual_models()
+                    
+                    # Map answers to neural network features
+                    feature_vector = map_answers_to_neural_features(st.session_state.answers)
+                    
+                    # Run neural network analysis
+                    neural_analysis = analyze_neural_network(feature_vector, model, scaler, label_encoder, device)
+                    
+                    # Run MBTI analysis
+                    mbti_analysis = analyze_mbti_system(st.session_state.answers)
+                    
+                    # Store both analyses
+                    st.session_state.neural_analysis = neural_analysis
+                    st.session_state.mbti_analysis = mbti_analysis
+                    st.session_state.results_ready = True
+                    st.rerun()
                 
-                # Map answers to neural network features
-                feature_vector = map_answers_to_neural_features(st.session_state.answers)
-                
-                # Run neural network analysis
-                neural_analysis = analyze_neural_network(feature_vector, model, scaler, label_encoder, device)
-                
-                # Run MBTI analysis
-                mbti_analysis = analyze_mbti_system(st.session_state.answers)
-                
-                # Store both analyses
-                st.session_state.neural_analysis = neural_analysis
-                st.session_state.mbti_analysis = mbti_analysis
-                st.session_state.results_ready = True
-                st.rerun()
+                except Exception as e:
+                    st.error(f"Analysis error: {str(e)}")
+                    return
         else:
-            # Show progress
+            # Show progress - FIXED: Proper progress calculation
             target_questions = adaptive_system.target_question_count
             current_questions = len(st.session_state.questions_asked)
             
@@ -1393,24 +1435,26 @@ def main():
     
     else:
         # Display dual results
-        neural_analysis = st.session_state.neural_analysis
-        mbti_analysis = st.session_state.mbti_analysis
-        scenario = st.session_state.selected_scenario
-        
-        create_dual_results_visualization(neural_analysis, mbti_analysis, scenario)
-        
-        # Download comprehensive results
-        col1, col2 = st.columns(2)
-        with col1:
-            if st.button("🔄 Retake Assessment", key="retake_btn"):
-                for key in list(st.session_state.keys()):
-                    del st.session_state[key]
-                st.rerun()
-        
-        with col2:
-            type_info = PERSONALITY_TYPES.get(mbti_analysis['type'], PERSONALITY_TYPES['INFP'])
+        try:
+            neural_analysis = st.session_state.neural_analysis
+            mbti_analysis = st.session_state.mbti_analysis
+            scenario = st.session_state.selected_scenario
             
-            results_text = f"""Dual Personality Analysis Results
+            create_dual_results_visualization(neural_analysis, mbti_analysis, scenario)
+            
+            # Download comprehensive results
+            col1, col2 = st.columns(2)
+            with col1:
+                if st.button("🔄 Retake Assessment", key="retake_btn"):
+                    # Clear all session state for fresh start
+                    for key in list(st.session_state.keys()):
+                        del st.session_state[key]
+                    st.rerun()
+            
+            with col2:
+                type_info = PERSONALITY_TYPES.get(mbti_analysis['type'], PERSONALITY_TYPES['INFP'])
+                
+                results_text = f"""Dual Personality Analysis Results
 ========================================
 
 NEURAL NETWORK ANALYSIS:
@@ -1419,7 +1463,7 @@ Confidence: {neural_analysis['confidence']:.1%}
 Method: Deep learning on 29 behavioral features
 Alternative Classifications: {', '.join([f"{label} ({prob:.1%})" for label, prob in zip(neural_analysis['labels'], neural_analysis['probabilities']) if prob > 0.05 and label != neural_analysis['predicted_label']])}
 
-MBTI SYSTEM ANALYSIS:
+16-TYPE SYSTEM ANALYSIS:
 Primary Type: {mbti_analysis['full_type']} - {type_info['name']}
 Description: {type_info['description']}
 Core Strengths: {type_info['strengths']}
@@ -1427,7 +1471,7 @@ Growth Areas: {type_info['weaknesses']}
 Career Matches: {type_info['careers']}
 Confidence: {mbti_analysis['confidence']:.1%}
 
-MBTI DIMENSION SCORES:
+DIMENSION SCORES:
 Extraversion/Introversion: {mbti_analysis['mbti_scores']['E/I']:.1f}/10
 Sensing/Intuition: {mbti_analysis['mbti_scores']['S/N']:.1f}/10  
 Thinking/Feeling: {mbti_analysis['mbti_scores']['T/F']:.1f}/10
@@ -1436,15 +1480,25 @@ Judging/Perceiving: {mbti_analysis['mbti_scores']['J/P']:.1f}/10
 SCENARIO: {scenario['name']}
 QUESTIONS ANALYZED: {len(st.session_state.questions_asked)} adaptive questions
 
-This dual analysis provides both data-driven insights (neural network) and theory-based understanding (MBTI) of your personality patterns.
-            """
-            st.download_button(
-                label="📄 Download Dual Analysis",
-                data=results_text,
-                file_name=f"dual_personality_analysis_{neural_analysis['predicted_label']}_{mbti_analysis['full_type']}.txt",
-                mime="text/plain"
-            )
+{LEGAL_DISCLAIMER}
 
+This dual analysis provides both data-driven insights (neural network) and theory-based understanding (16-type system) of your personality patterns.
+                """
+                st.download_button(
+                    label="📄 Download Dual Analysis",
+                    data=results_text,
+                    file_name=f"dual_personality_analysis_{neural_analysis['predicted_label']}_{mbti_analysis['full_type']}.txt",
+                    mime="text/plain"
+                )
+        
+        except Exception as e:
+            st.error(f"Results display error: {str(e)}")
+            if st.button("🔄 Reset Application"):
+                for key in list(st.session_state.keys()):
+                    del st.session_state[key]
+                st.rerun()
+
+# Footer
 footer = """
 <style>
 .custom-footer {
@@ -1466,4 +1520,3 @@ st.markdown(footer, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
-
