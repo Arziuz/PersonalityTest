@@ -42,6 +42,7 @@ LEGAL_DISCLAIMER = """
 It is not affiliated with, endorsed by, or a substitute for the Myers-Briggs Type Indicator (MBTI)®. 
 MBTI® and Myers-Briggs Type Indicator® are trademarks of The Myers-Briggs Company. 
 This tool uses an independently developed framework and original questions.
+This tool is not a medically approved assessment.
 """
 
 # 16 Personality Types with detailed descriptions (original content)
@@ -1519,4 +1520,5 @@ st.markdown(footer, unsafe_allow_html=True)
 
 if __name__ == "__main__":
     main()
+
 
